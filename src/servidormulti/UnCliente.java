@@ -19,9 +19,18 @@ import java.net.SocketException;
         while (true) {
             try {
                 mensaje = entrada.readUTF();
-                for (UnCliente cliente : ServidorMulti.clientes.values()) {
+                if (mensaje.startsWith("@")){
+                    String[] partes = mensaje.split(" ");
+                    String DirijidoA = partes[0].substring(1);
+                    UnCliente cliente = ServidorMulti.clientes.get(DirijidoA);
                     cliente.salida.writeUTF(mensaje);
+                }else{
+                    for( UnCliente cliente : ServidorMulti.clientes.values() ){
+                        cliente.salida.writeUTF(mensaje);
+                    }
+
                 }
+
             } catch (IOException ex) {
 
             }
