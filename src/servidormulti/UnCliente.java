@@ -21,9 +21,23 @@ import java.net.SocketException;
                 mensaje = entrada.readUTF();
                 if (mensaje.startsWith("@")){
                     String[] partes = mensaje.split(" ");
+                    if(partes[0].contains(",")){
+                        String [] partes2 = partes[0].split(",");
+for(int i = 0; i < partes2.length; i++){
+    String DirijidoA= partes2[i];
+    if(DirijidoA.contains("@")){
+       DirijidoA =  partes2[i].substring(1);
+    }
+    UnCliente cliente = ServidorMulti.clientes.get(DirijidoA);
+    cliente.salida.writeUTF(mensaje);
+
+}
+                    }else{
+
                     String DirijidoA = partes[0].substring(1);
                     UnCliente cliente = ServidorMulti.clientes.get(DirijidoA);
-                    cliente.salida.writeUTF(mensaje);
+                    cliente.salida.writeUTF(mensaje);}
+
                 }else{
                     for( UnCliente cliente : ServidorMulti.clientes.values() ){
                         cliente.salida.writeUTF(mensaje);
