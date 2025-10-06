@@ -14,7 +14,7 @@ public class ServidorMulti {
         while (true) {
             Socket s = servidorSocket.accept();
             UnCliente unCliente = new UnCliente(s);
-            Thread hilo = new Thread(unCliente);
+            Thread hilo = new Thread(unCliente, "CLIENTE: "+ Integer.toString(contador));
             clientes.put(Integer.toString(contador), unCliente);
             hilo.start();
             System.out.println("se conecto el cliente " +" "+ contador);
