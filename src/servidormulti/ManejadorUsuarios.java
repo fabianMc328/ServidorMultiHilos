@@ -21,7 +21,13 @@ if(siFueRegistrado){
 
 }//llave del metodo principal
 
+public synchronized boolean VerificarUsuario(String usuario,String contra){
+        ArchivosUsuarios arch = new ArchivosUsuarios();
+        if (arch.VerificarLogin(usuario,contra)) {
+            return true;
 
+        }else{return false;}
+}
 
 
 

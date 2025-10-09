@@ -37,7 +37,20 @@ if(mensaje.equalsIgnoreCase("logear")) {
     }
 }else{
 
-                manejador.procesar(mensaje);}
+    if (mensaje.equalsIgnoreCase("verificar")) {
+        String usuario = entrada.readUTF();
+        String contra = entrada.readUTF();
+        ManejadorUsuarios c = new ManejadorUsuarios();
+         boolean siEsta = c.VerificarUsuario(usuario, contra);
+
+         if (siEsta) {
+             salida.writeUTF("el usuario existe");
+         }else{salida.writeUTF("el usuario no existe.");}
+
+
+    }else{
+
+                manejador.procesar(mensaje);}}
             } catch (IOException ex) {
 
             }

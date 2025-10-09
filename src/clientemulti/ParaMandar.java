@@ -28,8 +28,24 @@ public class ParaMandar implements Runnable{
                         salida.writeUTF("logear");
                         salida.writeUTF(usuario);
                         salida.writeUTF(contra);
+
                     } else {
-                        salida.writeUTF(mensaje);
+
+                        if (mensaje.equalsIgnoreCase("verificar")) {
+                            System.out.print("Ingresa el usuario: ");
+                            String usuario = teclado.readLine();
+                            System.out.print("Ingresa la contraseña: ");
+                            String contra = teclado.readLine();
+
+                            salida.writeUTF("verificar");
+                            salida.writeUTF(usuario);
+                            salida.writeUTF(contra);
+
+
+                        }else{
+
+
+                        salida.writeUTF(mensaje);}
                     }
                 }
             }
