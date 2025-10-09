@@ -10,14 +10,13 @@ public class ParaRecibir implements Runnable{
 
     @Override
     public void run() {
-        String mensaje;
-        mensaje = "";
-        while(true){
-            try {
-                mensaje = entrada.readUTF();
-                System.out.println(mensaje);
-            } catch (IOException ex) {
+        try {
+            while (true) {
+                String mensaje = entrada.readUTF();
+                System.out.println( mensaje);
             }
+        } catch (IOException ex) {
+            System.out.println("Conexión cerrada o error: " + ex.getMessage());
         }
     }
 

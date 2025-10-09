@@ -14,14 +14,27 @@ public class ParaMandar implements Runnable{
 
     @Override
     public void run() {
-        while ( true ){
-            String mensaje;
-            try {
-                mensaje = teclado.readLine();
-                salida.writeUTF(mensaje);
-            } catch (IOException ex) {
-            }
+        try {
+            while (true) {
+                String mensaje = teclado.readLine();
+                if (mensaje != null && !mensaje.isEmpty()) {
 
+                    if (mensaje.equalsIgnoreCase("logear")) {
+                        System.out.print("Ingresa el usuario: ");
+                        String usuario = teclado.readLine();
+                        System.out.print("Ingresa la contraseña: ");
+                        String contra = teclado.readLine();
+
+                        salida.writeUTF("logear");
+                        salida.writeUTF(usuario);
+                        salida.writeUTF(contra);
+                    } else {
+                        salida.writeUTF(mensaje);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error enviando mensaje: " + e.getMessage());
         }
     }
 
