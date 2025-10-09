@@ -48,10 +48,18 @@ public class ArchivosUsuarios {
     public boolean VerificarLogin(String usuario, String contra) {
 
         try {
+            BufferedReader LecturaDeArchivo = new BufferedReader(new FileReader(ArchivosUsuarios));
+            String linea;
+            while ((linea = LecturaDeArchivo.readLine()) != null){
+                String[]partes = linea.split(":");
+                if(partes[0].equals(usuario) && partes[1].equals(contra)){
+                    return true;
 
+                }
+
+            }
         }catch (Exception e){
-
-
+            System.out.println("Error al Verificar login");
         }
         return false;
     }//llave del metodo
