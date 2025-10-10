@@ -5,11 +5,12 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class UnCliente implements Runnable {
-private final File ArchivosUsuario = new File("usuarios.txt");
+
     final DataOutputStream salida;
     final DataInputStream entrada;
-    final BufferedReader teclado = new BufferedReader(new InputStreamReader(System.in));
-    public UnCliente(Socket socket) throws IOException {
+    private final String clienteId;
+    public UnCliente(Socket socket, String clienteId) throws IOException {
+        this.clienteId = clienteId;
         salida = new DataOutputStream(socket.getOutputStream());
         entrada = new DataInputStream(socket.getInputStream());
     }
@@ -23,6 +24,23 @@ private final File ArchivosUsuario = new File("usuarios.txt");
         while (true) {
             try {
                 mensaje = entrada.readUTF();
+                if (mensaje != null && !mensaje.isEmpty()) {
+
+ int contadorMnessager = ServidorMulti.contadoresDeMensajes.get(this.clienteId);
+ contadorMnessager++;
+ ServidorMulti.contadoresDeMensajes.put(this.clienteId, contadorMnessager);
+
+                    if (contadorMnessager >= 3) {
+                        salida.writeUTF("Has enviado 3 mensajes. Por favor, registrate.");
+                    }
+
+
+
+
+                    manejador.procesar(mensaje);
+
+                }
+      /*
 if(mensaje.equalsIgnoreCase("logear")) {
     String usuario = entrada.readUTF();
     String contra = entrada.readUTF();
@@ -50,7 +68,7 @@ if(mensaje.equalsIgnoreCase("logear")) {
 
     }else{
 
-                manejador.procesar(mensaje);}}
+*/
             } catch (IOException ex) {
 
             }

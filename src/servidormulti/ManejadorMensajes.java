@@ -1,11 +1,11 @@
 package servidormulti;
+import java.io.File;
 import java.io.IOException;
 import static servidormulti.ServidorMulti.clientes;
 
 public class ManejadorMensajes {
 
     private final UnCliente remitente;
-
     public ManejadorMensajes(UnCliente remitente) {
         this.remitente = remitente;
     }
@@ -45,4 +45,6 @@ public class ManejadorMensajes {
     private String nombreMensaje(String mensaje) {
         return Thread.currentThread().getName() + " DICE: " + mensaje;
     }
+
+
 }
