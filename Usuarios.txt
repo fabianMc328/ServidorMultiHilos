@@ -1,2 +1,5 @@
 
 fabian:pepe:noRegistrado
+gael:pacheco:noRegistrado
+pepe:pepe:noRegistrado
+alex:pepe:noRegistrado

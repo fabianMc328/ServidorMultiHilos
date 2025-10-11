@@ -1,5 +1,6 @@
 package servidormulti;
 
+
 import java.io.*;
 
 public class ManejadorUsuarios {
@@ -28,7 +29,4 @@ public synchronized boolean VerificarUsuario(String usuario,String contra){
 
         }else{return false;}
 }
-
-
-
 }

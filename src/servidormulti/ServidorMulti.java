@@ -5,10 +5,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ServidorMulti {
-    public static HashMap<String, UnCliente> clientes = new HashMap<String, UnCliente>();
-   public static Map<String ,Integer> contadoresDeMensajes = new HashMap<>();
+    public static Map<String, UnCliente> clientes = new ConcurrentHashMap<>();
+    public static Map<String, Integer> contadoresDeMensajes = new ConcurrentHashMap<>();
 static int cont = 0;
 
     public static void main(String[] args) throws IOException {
