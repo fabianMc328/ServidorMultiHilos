@@ -1,32 +1,18 @@
 package servidormulti;
 
-
-import java.io.*;
-
 public class ManejadorUsuarios {
 
-
+    private final UsuariosBD usuariosBD;
 
     public ManejadorUsuarios() {
-
-
+        usuariosBD = new UsuariosBD();
     }
-public synchronized boolean RegistrarUsuario(String usuario, String contraseña){
-ArchivosUsuarios arch = new ArchivosUsuarios();
-boolean siFueRegistrado = arch.escribirUsuarios(usuario,contraseña);
 
-if(siFueRegistrado){
-    return true;
-}else{return false;}
+    public synchronized boolean RegistrarUsuario(String usuario, String contraseña) {
+        return usuariosBD.registrarUsuario(usuario, contraseña);
+    }
 
-
-}//llave del metodo principal
-
-public synchronized boolean VerificarUsuario(String usuario,String contra){
-        ArchivosUsuarios arch = new ArchivosUsuarios();
-        if (arch.VerificarLogin(usuario,contra)) {
-            return true;
-
-        }else{return false;}
-}
+    public synchronized boolean VerificarUsuario(String usuario, String contra) {
+        return usuariosBD.verificarLogin(usuario, contra);
+    }
 }
