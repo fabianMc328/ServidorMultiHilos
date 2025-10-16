@@ -2,16 +2,19 @@ package servidormulti;
 
 import clientemulti.ParaMandar;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class UnCliente implements Runnable {
 
     final DataOutputStream salida;
     final DataInputStream entrada;
     private final String clienteId;
-boolean registrado=false;
+    private String nombreUsuario = null; //
+    boolean registrado = false;
+
     public UnCliente(Socket socket, String clienteId) throws IOException {
         this.clienteId = clienteId;
         salida = new DataOutputStream(socket.getOutputStream());
@@ -20,7 +23,6 @@ boolean registrado=false;
 
     @Override
     public void run() {
-
         String mensaje;
         LectorMensajes lector = new LectorMensajes(entrada);
         ManejadorMensajes manejador = new ManejadorMensajes(this);
@@ -28,39 +30,37 @@ boolean registrado=false;
         while (true) {
             try {
                 mensaje = entrada.readUTF();
+
                 if (mensaje != null && !mensaje.isEmpty()) {
-if (!registrado) {
-    int contadorMnessager = ServidorMulti.contadoresDeMensajes.get(this.clienteId);
-    contadorMnessager++;
-    ServidorMulti.contadoresDeMensajes.put(this.clienteId, contadorMnessager);
 
-    if (contadorMnessager >= 3) {
-        salida.writeUTF("Has enviado 3 mensajes. Por favor, registrate usando [Register] o [Login]");
+                    if (!registrado) {
+                        int contador = ServidorMulti.contadoresDeMensajes.get(clienteId);
+                        contador++;
+                        ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
 
+                        if (contador >= 3) {
+                            salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [Register] o [Login]");
 
-        while (!registrado) {
-            String comando = entrada.readUTF();
-            boolean exito = ParaRegistroOlogin(comando);
+                            while (!registrado) {
+                                String comando = entrada.readUTF();
+                                boolean exito = ParaRegistroOlogin(comando);
 
-            if (exito) {
-                registrado = true;
-            } else {
-                salida.writeUTF("\nInténtalo de nuevo. Por favor, registrate usando [Register] o [Login]");
-            }
+                                if (!exito) {
+                                    salida.writeUTF("Inténtalo de nuevo. Usa [Register] o [Login]");
+                                }
+                            }
 
-        }
-
-        salida.writeUTF("¡Ahora puedes enviar mensajes normalmente!");
-        continue;
-    }
-}
+                            salida.writeUTF("¡Ahora puedes enviar mensajes normalmente!");
+                            continue;
+                        }
+                    }
 
                     manejador.procesar(mensaje);
-
                 }
 
             } catch (IOException ex) {
-
+                System.out.println("Cliente desconectado o error: " + ex.getMessage());
+                break;
             }
         }
     }
@@ -71,42 +71,51 @@ if (!registrado) {
                 String usuario = entrada.readUTF();
                 String contra = entrada.readUTF();
 
-                ManejadorUsuarios c = new ManejadorUsuarios();
-                boolean registrado = c.RegistrarUsuario(usuario, contra);
+                ManejadorUsuarios manejador = new ManejadorUsuarios();
+                boolean exito = manejador.RegistrarUsuario(usuario, contra);
 
-                if (registrado) {
+                if (exito) {
                     salida.writeUTF("Usuario registrado correctamente.");
+                    this.nombreUsuario = usuario;
+                    this.registrado = true;
+                    ServidorMulti.clientes.put(usuario, this);
                     return true;
                 } else {
                     salida.writeUTF("El usuario ya existe.");
-                    return false;
                 }
-            } else {
 
-                if (mensaje.equalsIgnoreCase("Login")) {
-                    String usuario = entrada.readUTF();
-                    String contra = entrada.readUTF();
-                    ManejadorUsuarios c = new ManejadorUsuarios();
-                    boolean siEsta = c.VerificarUsuario(usuario, contra);
+            } else if (mensaje.equalsIgnoreCase("Login")) {
+                String usuario = entrada.readUTF();
+                String contra = entrada.readUTF();
 
-                    if (siEsta) {
-                        salida.writeUTF("Sesion inciciada correctamente.");
-                        return true;
-                    } else {
-                        salida.writeUTF("el usuario no existe.");
-                        return false;
-                    }
+                ManejadorUsuarios manejador = new ManejadorUsuarios();
+                boolean exito = manejador.VerificarUsuario(usuario, contra);
 
-
-                  }
-               }
-            }catch (Exception e) {
-
+                if (exito) {
+                    salida.writeUTF("Sesión iniciada correctamente.");
+                    this.nombreUsuario = usuario;
+                    this.registrado = true;
+                    ServidorMulti.clientes.put(usuario, this);
+                    return true;
+                } else {
+                    salida.writeUTF("El usuario no existe o contraseña incorrecta.");
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
         return false;
     }
 
-
-
-
+    // GETTERS
+    public String getClienteId() {
+        return clienteId;
     }
+
+    public String getNombreUsuario() {
+        return nombreUsuario;
+    }
+}
+
+
