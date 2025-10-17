@@ -16,7 +16,7 @@ public class ConexionBD {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:mysql://localhost:3306/UsuariosDB?useSSL=false&serverTimezone=UTC");
         config.setUsername("root");
-        config.setPassword("tecnm2025");
+        config.setPassword("fabian12336");
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");

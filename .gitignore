@@ -1,9 +1,20 @@
-### IntelliJ IDEA ###
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# Archivos de compilación de Maven y Java
+/target/
+/out/
 
-### Eclipse ###
+# Archivos de configuración del IDE (IntelliJ)
+.idea/
+*.iml
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de registro (logs)
+*.log
+
+# Archivos de otros IDEs
+.vscode/
 .apt_generated
 .classpath
 .factorypath
@@ -12,18 +23,8 @@ out/
 .springBeans
 .sts4-cache
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
-.vscode/
-
-### Mac OS ###
-.DS_Store
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/

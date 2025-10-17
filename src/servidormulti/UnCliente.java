@@ -79,6 +79,7 @@ public class UnCliente implements Runnable {
                     this.nombreUsuario = usuario;
                     this.registrado = true;
                     ServidorMulti.clientes.put(usuario, this);
+                    ServidorMulti.clientes.remove(this.getClienteId());
                     return true;
                 } else {
                     salida.writeUTF("El usuario ya existe.");
@@ -96,6 +97,7 @@ public class UnCliente implements Runnable {
                     this.nombreUsuario = usuario;
                     this.registrado = true;
                     ServidorMulti.clientes.put(usuario, this);
+                    ServidorMulti.clientes.remove(this.getClienteId());
                     return true;
                 } else {
                     salida.writeUTF("El usuario no existe o contraseña incorrecta.");

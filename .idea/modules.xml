@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ServidorMulti.iml" filepath="$PROJECT_DIR$/ServidorMulti.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ServidorMultiHilos.iml" filepath="$PROJECT_DIR$/ServidorMultiHilos.iml" />
     </modules>
   </component>
 </project>
