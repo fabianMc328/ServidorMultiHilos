@@ -10,25 +10,25 @@ public class ServidorMulti {
     public static Map<String, UnCliente> clientes = new ConcurrentHashMap<>();
     public static Map<String, Integer> contadoresDeMensajes = new ConcurrentHashMap<>();
 
-
-    public static BloqueosBD bloqueosBD = new BloqueosBD();
-
     public static void main(String[] args) throws IOException {
-        ServerSocket servidorSocket = new ServerSocket(8080);
-        int contadorId = 0;
 
-        while (true) {
-            Socket s = servidorSocket.accept();
-            String clienteId = Integer.toString(contadorId);
+        UsuariosBD usuariosBD = new UsuariosBD();
+        BloqueosBD bloqueosBD = new BloqueosBD();
 
-            UnCliente unCliente = new UnCliente(s, clienteId);
-            Thread hilo = new Thread(unCliente, clienteId);
-            clientes.put(clienteId, unCliente);
-            contadoresDeMensajes.put(clienteId, 0);
-            hilo.start();
+        ManejadorUsuarios manejadorUsuarios = new ManejadorUsuarios(usuariosBD);
+        ManejadorMensajes manejadorMensajes = new ManejadorMensajes(bloqueosBD, usuariosBD);
 
-            System.out.println("Se conectó cliente " + clienteId);
-            contadorId++;
+        System.out.println("Servidor de chat iniciado...");
+        try (ServerSocket servidorSocket = new ServerSocket(8080)) {
+            int contadorId = 0;
+            while (true) {
+                Socket s = servidorSocket.accept();
+                String clienteId = String.valueOf(contadorId++);
+                UnCliente unCliente = new UnCliente(s, clienteId, manejadorUsuarios, manejadorMensajes);
+                clientes.put(clienteId, unCliente);
+                new Thread(unCliente).start();
+                System.out.println("Se conectó un nuevo cliente con ID temporal: " + clienteId);
+            }
         }
     }
 }

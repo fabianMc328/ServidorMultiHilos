@@ -1,7 +1,5 @@
 package servidormulti;
 
-import clientemulti.ParaMandar;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -9,115 +7,78 @@ import java.net.Socket;
 
 public class UnCliente implements Runnable {
 
-    final DataOutputStream salida;
-    final DataInputStream entrada;
+    public final DataOutputStream salida;
+    public final DataInputStream entrada;
     private final String clienteId;
-    private String nombreUsuario = null; //
-    boolean registrado = false;
+    private final ManejadorUsuarios manejadorUsuarios;
+    private final ManejadorMensajes manejadorMensajes;
 
-    public UnCliente(Socket socket, String clienteId) throws IOException {
+    private String nombreUsuario = null;
+    private boolean registrado = false;
+
+
+    public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes) throws IOException {
         this.clienteId = clienteId;
-        salida = new DataOutputStream(socket.getOutputStream());
-        entrada = new DataInputStream(socket.getInputStream());
+        this.salida = new DataOutputStream(socket.getOutputStream());
+        this.entrada = new DataInputStream(socket.getInputStream());
+        this.manejadorUsuarios = manejadorUsuarios;
+        this.manejadorMensajes = manejadorMensajes;
+
+        ServidorMulti.contadoresDeMensajes.put(clienteId, 0);
     }
 
     @Override
     public void run() {
-        String mensaje;
-        LectorMensajes lector = new LectorMensajes(entrada);
-        ManejadorMensajes manejador = new ManejadorMensajes(this);
-
-        while (true) {
-            try {
-                mensaje = entrada.readUTF();
-
-                if (mensaje != null && !mensaje.isEmpty()) {
-
-                    if (!registrado) {
-                        int contador = ServidorMulti.contadoresDeMensajes.get(clienteId);
-                        contador++;
-                        ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
-
-                        if (contador >= 3) {
-                            salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [Register] o [Login]");
-
-                            while (!registrado) {
-                                String comando = entrada.readUTF();
-                                boolean exito = ParaRegistroOlogin(comando);
-
-                                if (!exito) {
-                                    salida.writeUTF("Inténtalo de nuevo. Usa [Register] o [Login]");
-                                }
-                            }
-
-                            salida.writeUTF("¡Ahora puedes enviar mensajes normalmente!");
-                            continue;
-                        }
-                    }
-
-                    manejador.procesar(mensaje);
-                }
-
-            } catch (IOException ex) {
-                System.out.println("Cliente desconectado o error: " + ex.getMessage());
-                break;
-            }
-        }
-    }
-
-    public boolean ParaRegistroOlogin(String mensaje) {
         try {
-            if (mensaje.equalsIgnoreCase("Register")) {
-                String usuario = entrada.readUTF();
-                String contra = entrada.readUTF();
+            while (true) {
+                String mensaje = entrada.readUTF();
 
-                ManejadorUsuarios manejador = new ManejadorUsuarios();
-                boolean exito = manejador.RegistrarUsuario(usuario, contra);
-
-                if (exito) {
-                    salida.writeUTF("Usuario registrado correctamente.");
-                    this.nombreUsuario = usuario;
-                    this.registrado = true;
-                    ServidorMulti.clientes.put(usuario, this);
-                    ServidorMulti.clientes.remove(this.getClienteId());
-                    return true;
+                if (registrado) {
+                    manejadorMensajes.procesar(mensaje, this);
                 } else {
-                    salida.writeUTF("El usuario ya existe.");
-                }
-
-            } else if (mensaje.equalsIgnoreCase("Login")) {
-                String usuario = entrada.readUTF();
-                String contra = entrada.readUTF();
-
-                ManejadorUsuarios manejador = new ManejadorUsuarios();
-                boolean exito = manejador.VerificarUsuario(usuario, contra);
-
-                if (exito) {
-                    salida.writeUTF("Sesión iniciada correctamente.");
-                    this.nombreUsuario = usuario;
-                    this.registrado = true;
-                    ServidorMulti.clientes.put(usuario, this);
-                    ServidorMulti.clientes.remove(this.getClienteId());
-                    return true;
-                } else {
-                    salida.writeUTF("El usuario no existe o contraseña incorrecta.");
+                    gestionarAutenticacionOPrueba(mensaje);
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            System.out.println("Cliente '" + (nombreUsuario != null ? nombreUsuario : clienteId) + "' desconectado.");
+            limpiar();
         }
-
-        return false;
     }
 
-    // GETTERS
-    public String getClienteId() {
-        return clienteId;
+    private void gestionarAutenticacionOPrueba(String mensaje) throws IOException {
+        if (mensaje.equalsIgnoreCase("Register") || mensaje.equalsIgnoreCase("Login")) {
+            boolean exito = manejadorUsuarios.ParaRegistroOlogin(mensaje, this);
+            if (exito) {
+                this.registrado = true;
+                ServidorMulti.contadoresDeMensajes.remove(this.clienteId);
+                salida.writeUTF("¡Ahora puedes enviar mensajes normalmente!");
+            }
+        } else {
+
+            int contador = ServidorMulti.contadoresDeMensajes.get(clienteId) + 1;
+            ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
+            if (contador >= 3) {
+                salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [Register] o [Login]");
+            } else {
+                manejadorMensajes.procesar(mensaje, this);
+            }
+        }
     }
 
-    public String getNombreUsuario() {
-        return nombreUsuario;
+    private void limpiar() {
+
+        if (nombreUsuario != null) {
+            ServidorMulti.clientes.remove(nombreUsuario);
+        } else {
+            ServidorMulti.clientes.remove(clienteId);
+        }
+        ServidorMulti.contadoresDeMensajes.remove(clienteId);
     }
+
+
+    public String getClienteId() { return clienteId; }
+    public String getNombreUsuario() { return nombreUsuario; }
+    public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
 }
 
 

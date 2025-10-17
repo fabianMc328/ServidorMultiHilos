@@ -30,7 +30,7 @@ public class ConexionBD {
     public static void testConnection() {
         try (Connection conn = getConnection()) {
             if (conn != null && !conn.isClosed()) {
-                System.out.println("Conexión exitosa a la base de datos!");
+                System.out.println("Conexion exitosa a la base de datos!");
             }
         } catch (SQLException e) {
             System.err.println("Error conectando a la base de datos:");

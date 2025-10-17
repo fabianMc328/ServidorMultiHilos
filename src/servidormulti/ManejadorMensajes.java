@@ -4,100 +4,105 @@ import java.io.IOException;
 import static servidormulti.ServidorMulti.clientes;
 
 public class ManejadorMensajes {
+    private final BloqueosBD bloqueosBD;
+    private final UsuariosBD usuariosBD;
 
-    private final UnCliente remitente;
-    private final BloqueosBD bloqueosBD = ServidorMulti.bloqueosBD;
-    private final UsuariosBD usuariosBD = new UsuariosBD();
-
-    public ManejadorMensajes(UnCliente remitente) {
-        this.remitente = remitente;
+    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD) {
+        this.bloqueosBD = bloqueosBD;
+        this.usuariosBD = usuariosBD;
     }
 
-    public void procesar(String mensaje) throws IOException {
-        String nombreRemitente = remitente.getNombreUsuario();
-
+    public void procesar(String mensaje, UnCliente remitente) throws IOException {
+        String nombreRemitente = remitente.getNombreUsuario() != null ? remitente.getNombreUsuario() : "Invitado-" + remitente.getClienteId();
 
         if (mensaje.startsWith("/bloquear ")) {
-            String aBloquear = mensaje.substring(10).trim();
-
-            if (aBloquear.equalsIgnoreCase(nombreRemitente)) {
-                remitente.salida.writeUTF("No puedes bloquearte a ti mismo.");
-                return;
-            }
-
-            if (!usuariosBD.existeUsuario(aBloquear)) {
-                remitente.salida.writeUTF("El usuario '" + aBloquear + "' no existe.");
-                return;
-            }
-
-            boolean exito = bloqueosBD.bloquearUsuario(nombreRemitente, aBloquear);
-            remitente.salida.writeUTF(exito ? "Has bloqueado a " + aBloquear : "Ya estaba bloqueado o ocurrió un error.");
-            return;
-        }
-
-
-        if (mensaje.startsWith("/desbloquear ")) {
-            String aDesbloquear = mensaje.substring(12).trim();
-
-            boolean exito = bloqueosBD.desbloquearUsuario(nombreRemitente, aDesbloquear);
-            remitente.salida.writeUTF(exito ? "Has desbloqueado a " + aDesbloquear : "Ese usuario no estaba bloqueado.");
-            return;
-        }
-
-
-        if (mensaje.startsWith("@")) {
-            String[] partes = mensaje.split(" ");
-
-            if (partes[0].contains(",")) {
-                String[] destinos = partes[0].split(",");
-
-                for (String destino : destinos) {
-                    String nombre = destino.replace("@", "");
-                    UnCliente cliente = clientes.get(nombre);
-                    if (cliente != null) {
-                        if (bloqueosBD.estaBloqueado(nombre, nombreRemitente)) {
-                            remitente.salida.writeUTF("No puedes enviar mensaje a " + nombre + " porque te tiene bloqueado.");
-                            continue;
-                        }
-                        cliente.salida.writeUTF(nombreMensaje(mensaje));
-                    } else {
-                        remitente.salida.writeUTF("El usuario '" + nombre + "' no está conectado.");
-                    }
-                }
-
-            } else {
-                String destino = partes[0].substring(1);
-                UnCliente cliente = clientes.get(destino);
-                if (cliente != null) {
-                    if (bloqueosBD.estaBloqueado(destino, nombreRemitente)) {
-                        remitente.salida.writeUTF("No puedes enviar mensaje a " + destino + " porque te tiene bloqueado.");
-                        return;
-                    }
-                    cliente.salida.writeUTF(nombreMensaje(mensaje));
-                } else {
-                    remitente.salida.writeUTF("El usuario '" + destino + "' no está conectado.");
-                }
-            }
-
+            bloquearUsuario(mensaje, remitente);
+        } else if (mensaje.startsWith("/desbloquear ")) {
+            desbloquearUsuario(mensaje, remitente);
+        } else if (mensaje.startsWith("@")) {
+            procesarMensajePrivado(mensaje, remitente, nombreRemitente);
         } else {
+            procesarMensajeGlobal(mensaje, remitente, nombreRemitente);
+        }
+    }
 
-            if (!mensaje.startsWith("@") && !mensaje.startsWith("/") && mensaje.trim().length() > 0) {
-                for (UnCliente cliente : clientes.values()) {
-                    if (cliente != remitente) {
-                        if (bloqueosBD.estaBloqueado(cliente.getNombreUsuario(), nombreRemitente)) {
-                            continue;
-                        }
-                        cliente.salida.writeUTF(nombreMensaje(mensaje));
-                    }
+    private void bloquearUsuario(String mensaje, UnCliente remitente) throws IOException {
+        if (remitente.getNombreUsuario() == null) {
+            remitente.salida.writeUTF("Debes iniciar sesión para bloquear usuarios.");
+            return;
+        }
+        String aBloquear = mensaje.substring(10).trim();
+        if (aBloquear.equalsIgnoreCase(remitente.getNombreUsuario())) {
+            remitente.salida.writeUTF("No puedes bloquearte a ti mismo.");
+            return;
+        }
+        if (!usuariosBD.existeUsuario(aBloquear)) {
+            remitente.salida.writeUTF("El usuario '" + aBloquear + "' no existe.");
+            return;
+        }
+        boolean exito = bloqueosBD.bloquearUsuario(remitente.getNombreUsuario(), aBloquear);
+        remitente.salida.writeUTF(exito ? "Has bloqueado a " + aBloquear : "Ya estaba bloqueado.");
+    }
+
+    private void desbloquearUsuario(String mensaje, UnCliente remitente) throws IOException {
+        if (remitente.getNombreUsuario() == null) {
+            remitente.salida.writeUTF("Debes iniciar sesión para desbloquear usuarios.");
+            return;
+        }
+        String aDesbloquear = mensaje.substring(12).trim();
+        boolean exito = bloqueosBD.desbloquearUsuario(remitente.getNombreUsuario(), aDesbloquear);
+        remitente.salida.writeUTF(exito ? "Has desbloqueado a " + aDesbloquear : "Ese usuario no estaba bloqueado.");
+    }
+
+    private void procesarMensajePrivado(String mensaje, UnCliente remitente, String nombreRemitente) throws IOException {
+        if (remitente.getNombreUsuario() == null) {
+            remitente.salida.writeUTF("Debes iniciar sesión para enviar mensajes privados.");
+            return;
+        }
+        String[] partes = mensaje.split(" ", 2);
+        if (partes.length < 2) {
+            remitente.salida.writeUTF("Formato incorrecto. Usa: @usuario1,usuario2 mensaje");
+            return;
+        }
+        String todosLosDestinos = partes[0].substring(1); // Quita la '@'
+        String mensajePrivado = partes[1];
+        String[] destinosIndividuales = todosLosDestinos.split(",");
+
+        for (String destino : destinosIndividuales) {
+            String nombreLimpio = destino.trim();
+            if (nombreLimpio.isEmpty()) {
+                continue;
+            }
+
+            UnCliente clienteDestino = clientes.get(nombreLimpio);
+
+            if (clienteDestino != null) {
+                if (bloqueosBD.estaBloqueado(nombreLimpio, remitente.getNombreUsuario())) {
+                    remitente.salida.writeUTF("No puedes enviar mensaje a " + nombreLimpio + " porque te tiene bloqueado.");
+                    continue;
                 }
-
+                clienteDestino.salida.writeUTF("(Privado) " + nombreRemitente + " DICE: " + mensajePrivado);
+            } else {
+                remitente.salida.writeUTF("El usuario '" + nombreLimpio + "' no está conectado.");
             }
         }
     }
 
-    private String nombreMensaje(String mensaje) {
-        return remitente.getNombreUsuario() + " DICE: " + mensaje;
+    private void procesarMensajeGlobal(String mensaje, UnCliente remitente, String nombreRemitente) throws IOException {
+        String mensajeCompleto = nombreRemitente + " DICE: " + mensaje;
+
+        for (UnCliente cliente : clientes.values()) {
+            if (cliente != remitente) {
+                boolean puedeEnviar = true;
+                if (remitente.getNombreUsuario() != null && cliente.getNombreUsuario() != null) {
+                    if (bloqueosBD.estaBloqueado(cliente.getNombreUsuario(), remitente.getNombreUsuario())) {
+                        puedeEnviar = false;
+                    }
+                }
+                if (puedeEnviar) {
+                    cliente.salida.writeUTF(mensajeCompleto);
+                }
+            }
+        }
     }
-
 }
-

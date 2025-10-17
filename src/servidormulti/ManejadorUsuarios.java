@@ -1,18 +1,33 @@
+
 package servidormulti;
 
-public class ManejadorUsuarios {
+import java.io.IOException;
 
+public class ManejadorUsuarios {
     private final UsuariosBD usuariosBD;
 
-    public ManejadorUsuarios() {
-        usuariosBD = new UsuariosBD();
+    public ManejadorUsuarios(UsuariosBD usuariosBD) {
+        this.usuariosBD = usuariosBD;
     }
 
-    public synchronized boolean RegistrarUsuario(String usuario, String contraseña) {
-        return usuariosBD.registrarUsuario(usuario, contraseña);
-    }
+    public boolean ParaRegistroOlogin(String comando, UnCliente cliente) throws IOException {
+        String usuario = cliente.entrada.readUTF();
+        String contra = cliente.entrada.readUTF();
+        boolean exito = false;
 
-    public synchronized boolean VerificarUsuario(String usuario, String contra) {
-        return usuariosBD.verificarLogin(usuario, contra);
+        if (comando.equalsIgnoreCase("Register")) {
+            exito = usuariosBD.registrarUsuario(usuario, contra);
+            cliente.salida.writeUTF(exito ? "Usuario registrado correctamente." : "El usuario ya existe.");
+        } else if (comando.equalsIgnoreCase("Login")) {
+            exito = usuariosBD.verificarLogin(usuario, contra);
+            cliente.salida.writeUTF(exito ? "Sesión iniciada correctamente." : "El usuario no existe o contraseña incorrecta.");
+        }
+
+        if (exito) {
+            ServidorMulti.clientes.remove(cliente.getClienteId());
+            cliente.setNombreUsuario(usuario);
+            ServidorMulti.clientes.put(usuario, cliente);
+        }
+        return exito;
     }
 }
