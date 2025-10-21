@@ -12,6 +12,7 @@ public class UnCliente implements Runnable {
     private final String clienteId;
     private final ManejadorUsuarios manejadorUsuarios;
     private final ManejadorMensajes manejadorMensajes;
+    private String oponenteEnJuego = null;
 
     private String nombreUsuario = null;
     private boolean registrado = false;
@@ -79,6 +80,23 @@ public class UnCliente implements Runnable {
     public String getClienteId() { return clienteId; }
     public String getNombreUsuario() { return nombreUsuario; }
     public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
+
+
+//agregue
+    public String getOponenteEnJuego() {
+        return oponenteEnJuego;
+    }
+//agreue
+    public void setOponenteEnJuego(String oponenteEnJuego) {
+        this.oponenteEnJuego = oponenteEnJuego;
+    }
+    //agregue
+    public void recibirInvitacion(String desdeUsuario) throws IOException {
+        salida.writeUTF("[INVITACION] Invitación para jugar Gato de " + desdeUsuario +
+                ". Para aceptar: /aceptar " + desdeUsuario +
+                ", para rechazar: /rechazar " + desdeUsuario);
+    }
+
 }
 
 
