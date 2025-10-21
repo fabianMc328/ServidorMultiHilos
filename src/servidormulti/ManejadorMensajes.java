@@ -6,14 +6,62 @@ import static servidormulti.ServidorMulti.clientes;
 public class ManejadorMensajes {
     private final BloqueosBD bloqueosBD;
     private final UsuariosBD usuariosBD;
+    private final ManejadorInvitaciones manejadorInvitaciones;
 
     public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD) {
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
+        this.manejadorInvitaciones = new ManejadorInvitaciones();
     }
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario() != null ? remitente.getNombreUsuario() : "Invitado-" + remitente.getClienteId();
+
+
+        if (mensaje.startsWith("/invitar ")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesión para enviar invitaciones.");
+                return;
+            }
+            String invitado = mensaje.substring(9).trim();
+            manejadorInvitaciones.enviarInvitacion(nombreRemitente, invitado);
+            return;
+        }
+
+        if (mensaje.startsWith("/aceptar ")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesión para aceptar invitaciones.");
+                return;
+            }
+            String invitador = mensaje.substring(9).trim();
+            manejadorInvitaciones.aceptarInvitacion(nombreRemitente, invitador);
+            return;
+        }
+
+        if (mensaje.startsWith("/rechazar ")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesión para rechazar invitaciones.");
+                return;
+            }
+            String invitador = mensaje.substring(10).trim();
+            manejadorInvitaciones.rechazarInvitacion(nombreRemitente, invitador);
+            return;
+        }
+
+        if (ServidorMulti.partidasActivas.containsKey(nombreRemitente)) {
+            String oponente = ServidorMulti.partidasActivas.get(nombreRemitente);
+            UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
+
+            if (clienteOponente != null) {
+                String texto = "[Juego Gato] " + nombreRemitente + ": " + mensaje;
+                clienteOponente.salida.writeUTF(texto);
+                remitente.salida.writeUTF(texto);
+            } else {
+                remitente.salida.writeUTF("Tu oponente ya no está conectado. La partida terminó.");
+                manejadorInvitaciones.finalizarPartida(nombreRemitente, oponente);
+            }
+            return;
+        }
 
         if (mensaje.startsWith("/bloquear ")) {
             bloquearUsuario(mensaje, remitente);
