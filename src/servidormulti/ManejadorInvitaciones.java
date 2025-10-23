@@ -73,9 +73,25 @@ public class ManejadorInvitaciones {
         partidasActivas.put(invitador, invitado);
 
         invitadores.remove(invitador);
+        TableroGato nuevoJuego = new TableroGato('X');
+        ServidorMulti.tablerosPartidas.put(invitado, nuevoJuego);
+        ServidorMulti.tablerosPartidas.put(invitador, nuevoJuego); // Ambos apuntan al mismo tablero
 
-        clientes.get(invitado).salida.writeUTF("Has aceptado la invitación de '" + invitador + "'. ¡Comienza el juego de Gato!");
-        clienteInvitador.salida.writeUTF("El usuario '" + invitado + "' ha aceptado tu invitación. ¡Comienza el juego de Gato!");
+
+        ServidorMulti.simbolosJugadores.put(invitador, 'X');
+        ServidorMulti.simbolosJugadores.put(invitado, 'O');
+
+
+        String instrucciones = "\nPara jugar, envía: /gato [fila] [columna] (ej: /gato 0 1)";
+        String tableroInicial = nuevoJuego.mostrarTablero();
+
+
+        clientes.get(invitado).salida.writeUTF("Has aceptado la invitación de '" + invitador + "'. ¡Comienza el juego de Gato!\n" +
+                "Tú eres 'O'. Espera el turno de 'X'.\n" + tableroInicial + instrucciones);
+
+        clienteInvitador.salida.writeUTF("El usuario '" + invitado + "' ha aceptado tu invitación. ¡Comienza el juego de Gato!\n" +
+                "Tú eres 'X'. Es tu turno.\n" + tableroInicial + instrucciones);
+
     }
 
     public void rechazarInvitacion(String invitado, String invitador) throws IOException {
@@ -98,6 +114,10 @@ public class ManejadorInvitaciones {
     public void finalizarPartida(String usuario1, String usuario2) throws IOException {
         partidasActivas.remove(usuario1);
         partidasActivas.remove(usuario2);
+        ServidorMulti.tablerosPartidas.remove(usuario1);
+        ServidorMulti.tablerosPartidas.remove(usuario2);
+        ServidorMulti.simbolosJugadores.remove(usuario1);
+        ServidorMulti.simbolosJugadores.remove(usuario2);
 
         UnCliente cliente1 = clientes.get(usuario1);
         UnCliente cliente2 = clientes.get(usuario2);
