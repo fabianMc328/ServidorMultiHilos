@@ -68,6 +68,29 @@ public class UnCliente implements Runnable {
 
     private void limpiar() {
 
+
+        String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
+        if (ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
+            String oponente = ServidorMulti.partidasActivas.get(nombreUsuarioLimpio);
+            UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
+
+            if (clienteOponente != null) {
+                try {
+                    clienteOponente.salida.writeUTF("Tu oponente '" + nombreUsuarioLimpio + "' se ha desconectado. La partida ha terminado.");
+                } catch (IOException e) {
+
+                }
+            }
+
+            try {
+                manejadorMensajes.manejadorInvitaciones.finalizarPartida(nombreUsuarioLimpio, oponente);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
         if (nombreUsuario != null) {
             ServidorMulti.clientes.remove(nombreUsuario);
         } else {
@@ -82,11 +105,11 @@ public class UnCliente implements Runnable {
     public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
 
 
-//agregue
+    //agregue
     public String getOponenteEnJuego() {
         return oponenteEnJuego;
     }
-//agreue
+    //agreue
     public void setOponenteEnJuego(String oponenteEnJuego) {
         this.oponenteEnJuego = oponenteEnJuego;
     }

@@ -6,7 +6,7 @@ import static servidormulti.ServidorMulti.clientes;
 public class ManejadorMensajes {
     private final BloqueosBD bloqueosBD;
     private final UsuariosBD usuariosBD;
-    private final ManejadorInvitaciones manejadorInvitaciones;
+    final ManejadorInvitaciones manejadorInvitaciones;
 
     public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD) {
         this.bloqueosBD = bloqueosBD;
@@ -47,21 +47,26 @@ public class ManejadorMensajes {
             manejadorInvitaciones.rechazarInvitacion(nombreRemitente, invitador);
             return;
         }
-
         if (ServidorMulti.partidasActivas.containsKey(nombreRemitente)) {
             String oponente = ServidorMulti.partidasActivas.get(nombreRemitente);
             UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
 
             if (clienteOponente != null) {
-                String texto = "[Juego Gato] " + nombreRemitente + ": " + mensaje;
-                clienteOponente.salida.writeUTF(texto);
-                remitente.salida.writeUTF(texto);
+                if (mensaje.startsWith("/gato ")) {
+                    procesarMovimientoGato(mensaje, remitente, clienteOponente);
+                } else {
+                    String texto = "[Juego Gato] " + nombreRemitente + ": " + mensaje;
+                    clienteOponente.salida.writeUTF(texto);
+                    remitente.salida.writeUTF(texto);
+                }
+
             } else {
                 remitente.salida.writeUTF("Tu oponente ya no está conectado. La partida terminó.");
                 manejadorInvitaciones.finalizarPartida(nombreRemitente, oponente);
             }
             return;
         }
+
 
         if (mensaje.startsWith("/bloquear ")) {
             bloquearUsuario(mensaje, remitente);
@@ -153,4 +158,68 @@ public class ManejadorMensajes {
             }
         }
     }
+
+    private void procesarMovimientoGato(String mensaje, UnCliente remitente, UnCliente oponente) throws IOException {
+        String nombreRemitente = remitente.getNombreUsuario();
+        String nombreOponente = oponente.getNombreUsuario();
+
+        TableroGato tablero = ServidorMulti.tablerosPartidas.get(nombreRemitente);
+
+        if (tablero == null || tablero.isTerminado()) {
+            remitente.salida.writeUTF("No hay ninguna partida activa o ya ha terminado.");
+            return;
+        }
+
+        char simboloRemitente = ServidorMulti.simbolosJugadores.get(nombreRemitente);
+
+        if (tablero.getTurno() != simboloRemitente) {
+            remitente.salida.writeUTF("No es tu turno.");
+            return;
+        }
+
+        String[] partes = mensaje.split(" ");
+        if (partes.length != 3) {
+            remitente.salida.writeUTF("Comando inválido. Usa: /gato [fila] [columna]");
+            return;
+        }
+
+        try {
+            int fila = Integer.parseInt(partes[1]);
+            int col = Integer.parseInt(partes[2]);
+
+            boolean exito = tablero.hacerMovimiento(fila, col);
+            if (!exito) {
+                remitente.salida.writeUTF("Movimiento inválido. (Posición ocupada o fuera de rango [0-2]).");
+                return;
+            }
+
+
+            String estadoTablero = "\n" + tablero.mostrarTablero();
+            remitente.salida.writeUTF("Tu movimiento:" + estadoTablero);
+            oponente.salida.writeUTF("Movimiento de " + nombreRemitente + ":" + estadoTablero);
+
+            if (tablero.verificarGanador()) {
+                tablero.setTerminado(true);
+                remitente.salida.writeUTF("¡Felicidades, has ganado!");
+                oponente.salida.writeUTF("¡" + nombreRemitente + " ha ganado la partida!");
+                manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
+
+            } else if (tablero.tableroCompleto()) {
+                tablero.setTerminado(true);
+                remitente.salida.writeUTF("¡La partida ha terminado en empate!");
+                oponente.salida.writeUTF("¡La partida ha terminado en empate!");
+                manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
+
+            } else {
+
+                tablero.cambiarTurno();
+                remitente.salida.writeUTF("Turno de " + nombreOponente + ".");
+                oponente.salida.writeUTF("Es tu turno.");
+            }
+
+        } catch (NumberFormatException e) {
+            remitente.salida.writeUTF("Comando inválido. Fila y columna deben ser números (0, 1, o 2).");
+        }
+    }
+
 }

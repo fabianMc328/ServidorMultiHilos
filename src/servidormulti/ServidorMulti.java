@@ -10,11 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ServidorMulti {
     public static Map<String, UnCliente> clientes = new ConcurrentHashMap<>();
     public static Map<String, Integer> contadoresDeMensajes = new ConcurrentHashMap<>();
-    //agregue
     public static Map<String, Set<String>> invitacionesRecibidas = new ConcurrentHashMap<>();
-    //agregue
     public static Map<String, String> partidasActivas = new ConcurrentHashMap<>();
     public static Map<String, TableroGato> tablerosPartidas = new ConcurrentHashMap<>();
+    public static Map<String, Character> simbolosJugadores = new ConcurrentHashMap<>();
 
 
     public static void main(String[] args) throws IOException {
