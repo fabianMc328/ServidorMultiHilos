@@ -67,8 +67,6 @@ public class UnCliente implements Runnable {
     }
 
     private void limpiar() {
-
-
         String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
         if (ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
             String oponente = ServidorMulti.partidasActivas.get(nombreUsuarioLimpio);
@@ -76,19 +74,23 @@ public class UnCliente implements Runnable {
 
             if (clienteOponente != null) {
                 try {
-                    clienteOponente.salida.writeUTF("Tu oponente '" + nombreUsuarioLimpio + "' se ha desconectado. La partida ha terminado.");
+                    clienteOponente.salida.writeUTF("Tu oponente '" + nombreUsuarioLimpio + "' se ha desconectado. Has ganado por abandono.");
                 } catch (IOException e) {
-
                 }
             }
 
             try {
-                manejadorMensajes.manejadorInvitaciones.finalizarPartida(nombreUsuarioLimpio, oponente);
+
+                if (nombreUsuario != null) {
+
+                    manejadorMensajes.procesarAbandono(nombreUsuarioLimpio, oponente);
+                } else {
+                    manejadorMensajes.manejadorInvitaciones.finalizarPartida(nombreUsuarioLimpio, oponente);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-
 
 
         if (nombreUsuario != null) {
@@ -121,5 +123,3 @@ public class UnCliente implements Runnable {
     }
 
 }
-
-

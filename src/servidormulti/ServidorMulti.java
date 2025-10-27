@@ -20,9 +20,9 @@ public class ServidorMulti {
 
         UsuariosBD usuariosBD = new UsuariosBD();
         BloqueosBD bloqueosBD = new BloqueosBD();
-
+        RankingBD rankingBD = new RankingBD();
         ManejadorUsuarios manejadorUsuarios = new ManejadorUsuarios(usuariosBD);
-        ManejadorMensajes manejadorMensajes = new ManejadorMensajes(bloqueosBD, usuariosBD);
+        ManejadorMensajes manejadorMensajes = new ManejadorMensajes(bloqueosBD, usuariosBD, rankingBD);
 
         System.out.println("Servidor de chat iniciado...");
         try (ServerSocket servidorSocket = new ServerSocket(8080)) {
@@ -38,4 +38,3 @@ public class ServidorMulti {
         }
     }
 }
-
