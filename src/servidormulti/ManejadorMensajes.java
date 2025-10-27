@@ -7,11 +7,16 @@ public class ManejadorMensajes {
     private final BloqueosBD bloqueosBD;
     private final UsuariosBD usuariosBD;
     final ManejadorInvitaciones manejadorInvitaciones;
+    private final RankingBD rankingBD;
 
-    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD) {
+
+
+    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD) {
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
         this.manejadorInvitaciones = new ManejadorInvitaciones();
+        this.rankingBD = rankingBD;
+
     }
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
@@ -47,6 +52,39 @@ public class ManejadorMensajes {
             manejadorInvitaciones.rechazarInvitacion(nombreRemitente, invitador);
             return;
         }
+
+        if (mensaje.equalsIgnoreCase("/ranking")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesión para ver el ranking.");
+                return;
+            }
+            String ranking = rankingBD.getRankingGeneral();
+            remitente.salida.writeUTF(ranking);
+            return;
+        }
+
+        if (mensaje.startsWith("/h2h ")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesión para ver estadísticas H2H.");
+                return;
+            }
+            String oponente = mensaje.substring(5).trim();
+            if (oponente.equalsIgnoreCase(remitente.getNombreUsuario())) {
+                remitente.salida.writeUTF("No puedes compararte contigo mismo.");
+                return;
+            }
+            if (!usuariosBD.existeUsuario(oponente)) {
+                remitente.salida.writeUTF("El usuario '" + oponente + "' no existe.");
+                return;
+            }
+
+
+            String comparar = rankingBD.getH2H(remitente.getNombreUsuario(), oponente);
+            remitente.salida.writeUTF(comparar);
+            return;
+        }
+
+
         if (ServidorMulti.partidasActivas.containsKey(nombreRemitente)) {
             String oponente = ServidorMulti.partidasActivas.get(nombreRemitente);
             UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
@@ -62,7 +100,10 @@ public class ManejadorMensajes {
 
             } else {
                 remitente.salida.writeUTF("Tu oponente ya no está conectado. La partida terminó.");
-                manejadorInvitaciones.finalizarPartida(nombreRemitente, oponente);
+                if(remitente.getNombreUsuario() != null) {
+                    procesarAbandono(oponente, nombreRemitente);
+                }
+
             }
             return;
         }
@@ -202,12 +243,14 @@ public class ManejadorMensajes {
                 tablero.setTerminado(true);
                 remitente.salida.writeUTF("¡Felicidades, has ganado!");
                 oponente.salida.writeUTF("¡" + nombreRemitente + " ha ganado la partida!");
+                rankingBD.actualizarResultados(nombreRemitente, nombreOponente, false);
                 manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
 
             } else if (tablero.tableroCompleto()) {
                 tablero.setTerminado(true);
                 remitente.salida.writeUTF("¡La partida ha terminado en empate!");
                 oponente.salida.writeUTF("¡La partida ha terminado en empate!");
+                rankingBD.actualizarResultados(nombreRemitente, nombreOponente, true);
                 manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
 
             } else {
@@ -221,5 +264,15 @@ public class ManejadorMensajes {
             remitente.salida.writeUTF("Comando inválido. Fila y columna deben ser números (0, 1, o 2).");
         }
     }
+
+
+    public void procesarAbandono(String usuarioAbandona, String oponenteGana) throws IOException {
+
+        if (rankingBD != null) {
+            rankingBD.actualizarResultados(oponenteGana, usuarioAbandona, false);
+        }
+        manejadorInvitaciones.finalizarPartida(usuarioAbandona, oponenteGana);
+    }
+
 
 }
