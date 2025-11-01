@@ -21,8 +21,11 @@ public class ServidorMulti {
         UsuariosBD usuariosBD = new UsuariosBD();
         BloqueosBD bloqueosBD = new BloqueosBD();
         RankingBD rankingBD = new RankingBD();
+        GruposBD gruposBD = new GruposBD();
+        ManejadorGrupos manejadorGrupos = new ManejadorGrupos(gruposBD, clientes);
         ManejadorUsuarios manejadorUsuarios = new ManejadorUsuarios(usuariosBD);
-        ManejadorMensajes manejadorMensajes = new ManejadorMensajes(bloqueosBD, usuariosBD, rankingBD);
+        ManejadorMensajes manejadorMensajes = new ManejadorMensajes(bloqueosBD, usuariosBD, rankingBD, gruposBD, manejadorGrupos);
+
 
         System.out.println("Servidor de chat iniciado...");
         try (ServerSocket servidorSocket = new ServerSocket(8080)) {
@@ -30,7 +33,7 @@ public class ServidorMulti {
             while (true) {
                 Socket s = servidorSocket.accept();
                 String clienteId = String.valueOf(contadorId++);
-                UnCliente unCliente = new UnCliente(s, clienteId, manejadorUsuarios, manejadorMensajes);
+                UnCliente unCliente = new UnCliente(s, clienteId, manejadorUsuarios, manejadorMensajes, manejadorGrupos);
                 clientes.put(clienteId, unCliente);
                 new Thread(unCliente).start();
                 System.out.println("Se conectó un nuevo cliente con ID temporal: " + clienteId);
