@@ -32,6 +32,13 @@ public class ManejadorGrupos {
                 }
                 crearGrupo(argumento, remitente);
                 break;
+            case "/borrar-grupo":
+                if (argumento.isEmpty()) {
+                    remitente.salida.writeUTF("Uso: /borrar-grupo [nombre]");
+                    return;
+                }
+                borrarGrupo(argumento, remitente);
+                break;
 
             default:
                 remitente.salida.writeUTF("Comando desconocido. Comandos de grupo: /crear-grupo, /borrar-grupo, /unirse-grupo, /abandonar-grupo, /lista-grupos");
@@ -71,5 +78,11 @@ public class ManejadorGrupos {
         }
 
 
+    }
+    private void borrarGrupo(String nombreGrupo, UnCliente remitente) throws IOException {
+        if (nombreGrupo.equalsIgnoreCase("todos")) {
+            remitente.salida.writeUTF("No puedes borrar el grupo 'todos'.");
+            return;
+        }
     }
 }
