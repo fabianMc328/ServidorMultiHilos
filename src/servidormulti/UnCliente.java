@@ -12,7 +12,8 @@ public class UnCliente implements Runnable {
     private final String clienteId;
     private final ManejadorUsuarios manejadorUsuarios;
     private final ManejadorMensajes manejadorMensajes;
-    private final ManejadorGrupos manejadorGrupos;
+    private final ManejadorGrupos manejadorGrupos; // Necesario para unir a "todos"
+
     private String oponenteEnJuego = null;
     private String nombreUsuario = null;
     private boolean registrado = false;
@@ -25,7 +26,7 @@ public class UnCliente implements Runnable {
         this.entrada = new DataInputStream(socket.getInputStream());
         this.manejadorUsuarios = manejadorUsuarios;
         this.manejadorMensajes = manejadorMensajes;
-        this.manejadorGrupos = manejadorGrupos;
+        this.manejadorGrupos = manejadorGrupos; // Asignar
 
         ServidorMulti.contadoresDeMensajes.put(clienteId, 0);
     }
@@ -35,11 +36,23 @@ public class UnCliente implements Runnable {
         try {
             while (true) {
                 String mensaje = entrada.readUTF();
+                if (registrado && (mensaje.equalsIgnoreCase("/login") || mensaje.equalsIgnoreCase("/register"))) {
+                    salida.writeUTF("Ya estás logueado como: " + nombreUsuario);
+                    continue;
+                }
+
 
                 if (registrado) {
+
                     manejadorMensajes.procesar(mensaje, this);
                 } else {
-                    gestionarAutenticacionOPrueba(mensaje);
+
+                    if (mensaje.equalsIgnoreCase("/register") || mensaje.equalsIgnoreCase("/login")) {
+                        gestionarAutenticacion(mensaje);
+                    } else {
+
+                        gestionarMensajesDeInvitado(mensaje);
+                    }
                 }
             }
         } catch (IOException ex) {
@@ -48,35 +61,31 @@ public class UnCliente implements Runnable {
         }
     }
 
-    private void gestionarAutenticacionOPrueba(String mensaje) throws IOException {
-        if (mensaje.equalsIgnoreCase("Register") || mensaje.equalsIgnoreCase("Login")) {
-            boolean exito = manejadorUsuarios.ParaRegistroOlogin(mensaje, this);
-            if (exito) {
-                this.registrado = true;
-                ServidorMulti.contadoresDeMensajes.remove(this.clienteId);
-                manejadorGrupos.cambiarGrupo("todos", this);
+    private void gestionarAutenticacion(String mensaje) throws IOException {
+        boolean exito = manejadorUsuarios.ParaRegistroOlogin(mensaje, this);
+        if (exito) {
+            this.registrado = true;
+            ServidorMulti.contadoresDeMensajes.remove(this.clienteId);
+            manejadorGrupos.cambiarGrupo("todos", this);
+        }
+    }
 
-            }
+    private void gestionarMensajesDeInvitado(String mensaje) throws IOException {
+        int contador = ServidorMulti.contadoresDeMensajes.get(clienteId) + 1;
+        ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
+        if (contador > 3) {
+            salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [/register] o [/login]");
         } else {
-            if (this.idGrupoActual != 1) { // 1 es 'todos'
-                salida.writeUTF("Como invitado, has sido movido al grupo 'todos'.");
+
+            if (this.idGrupoActual != 1) {
                 this.idGrupoActual = 1;
                 this.nombreGrupoActual = "todos";
             }
 
-
-            int contador = ServidorMulti.contadoresDeMensajes.get(clienteId) + 1;
-            ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
-            if (contador >= 3) {
-                salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [Register] o [Login]");
-            } else {
-                manejadorMensajes.procesar(mensaje, this);
-            }
+            manejadorMensajes.procesar(mensaje, this);
         }
     }
-
     private void limpiar() {
-
         String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
         if (ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
             String oponente = ServidorMulti.partidasActivas.get(nombreUsuarioLimpio);
@@ -101,10 +110,8 @@ public class UnCliente implements Runnable {
             }
         }
 
-
         if (this.nombreUsuario != null) {
             manejadorGrupos.actualizarEstadoLectura(this);
-
         }
 
         if (nombreUsuario != null) {
