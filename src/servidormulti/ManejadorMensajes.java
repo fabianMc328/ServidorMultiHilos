@@ -8,15 +8,16 @@ public class ManejadorMensajes {
     private final UsuariosBD usuariosBD;
     final ManejadorInvitaciones manejadorInvitaciones;
     private final RankingBD rankingBD;
+    private final GruposBD gruposBD;
+    private final ManejadorGrupos manejadorGrupos;
 
-
-
-    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD) {
+    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos) {
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
-        this.manejadorInvitaciones = new ManejadorInvitaciones();
         this.rankingBD = rankingBD;
-
+        this.manejadorInvitaciones = new ManejadorInvitaciones();
+        this.gruposBD = gruposBD;
+        this.manejadorGrupos = manejadorGrupos;
     }
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
@@ -78,13 +79,10 @@ public class ManejadorMensajes {
                 return;
             }
 
-
-            String comparar = rankingBD.getH2H(remitente.getNombreUsuario(), oponente);
-            remitente.salida.writeUTF(comparar);
+            String h2hStats = rankingBD.getH2H(remitente.getNombreUsuario(), oponente);
+            remitente.salida.writeUTF(h2hStats);
             return;
         }
-
-
         if (ServidorMulti.partidasActivas.containsKey(nombreRemitente)) {
             String oponente = ServidorMulti.partidasActivas.get(nombreRemitente);
             UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
@@ -103,20 +101,27 @@ public class ManejadorMensajes {
                 if(remitente.getNombreUsuario() != null) {
                     procesarAbandono(oponente, nombreRemitente);
                 }
-
             }
             return;
         }
 
-
         if (mensaje.startsWith("/bloquear ")) {
             bloquearUsuario(mensaje, remitente);
+            return;
         } else if (mensaje.startsWith("/desbloquear ")) {
             desbloquearUsuario(mensaje, remitente);
-        } else if (mensaje.startsWith("@")) {
+            return;
+        }
+
+        if (mensaje.startsWith("/")) {
+            manejadorGrupos.procesarComandoGrupo(mensaje, remitente);
+            return;
+        }
+
+        if (mensaje.startsWith("@")) {
             procesarMensajePrivado(mensaje, remitente, nombreRemitente);
         } else {
-            procesarMensajeGlobal(mensaje, remitente, nombreRemitente);
+            procesarMensajeGrupo(mensaje, remitente, nombreRemitente);
         }
     }
 
@@ -158,7 +163,7 @@ public class ManejadorMensajes {
             remitente.salida.writeUTF("Formato incorrecto. Usa: @usuario1,usuario2 mensaje");
             return;
         }
-        String todosLosDestinos = partes[0].substring(1); // Quita la '@'
+        String todosLosDestinos = partes[0].substring(1);
         String mensajePrivado = partes[1];
         String[] destinosIndividuales = todosLosDestinos.split(",");
 
@@ -182,19 +187,34 @@ public class ManejadorMensajes {
         }
     }
 
-    private void procesarMensajeGlobal(String mensaje, UnCliente remitente, String nombreRemitente) throws IOException {
-        String mensajeCompleto = nombreRemitente + " DICE: " + mensaje;
+    private void procesarMensajeGrupo(String mensaje, UnCliente remitente, String nombreRemitente) throws IOException {
+        if (remitente.getNombreUsuario() == null && remitente.getIdGrupoActual() != 1) {
+            remitente.salida.writeUTF("Como invitado, solo puedes chatear en 'todos'. Escribe /unirse-grupo todos");
+            return;
+        }
 
-        for (UnCliente cliente : clientes.values()) {
-            if (cliente != remitente) {
+        long nuevoMensajeId = gruposBD.guardarMensaje(remitente.getIdGrupoActual(), nombreRemitente, mensaje);
+
+        String mensajeCompleto = String.format("[%s] %s DICE: %s",
+                remitente.getNombreGrupoActual(),
+                nombreRemitente,
+                mensaje);
+
+        for (UnCliente clienteDestino : clientes.values()) {
+            if (clienteDestino == remitente) {
+                continue;
+            }
+            if (clienteDestino.getIdGrupoActual() == remitente.getIdGrupoActual()) {
+
                 boolean puedeEnviar = true;
-                if (remitente.getNombreUsuario() != null && cliente.getNombreUsuario() != null) {
-                    if (bloqueosBD.estaBloqueado(cliente.getNombreUsuario(), remitente.getNombreUsuario())) {
+                if (remitente.getNombreUsuario() != null && clienteDestino.getNombreUsuario() != null) {
+                    if (bloqueosBD.estaBloqueado(clienteDestino.getNombreUsuario(), remitente.getNombreUsuario())) {
                         puedeEnviar = false;
                     }
                 }
+
                 if (puedeEnviar) {
-                    cliente.salida.writeUTF(mensajeCompleto);
+                    clienteDestino.salida.writeUTF(mensajeCompleto);
                 }
             }
         }
@@ -243,14 +263,18 @@ public class ManejadorMensajes {
                 tablero.setTerminado(true);
                 remitente.salida.writeUTF("¡Felicidades, has ganado!");
                 oponente.salida.writeUTF("¡" + nombreRemitente + " ha ganado la partida!");
+
                 rankingBD.actualizarResultados(nombreRemitente, nombreOponente, false);
+
                 manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
 
             } else if (tablero.tableroCompleto()) {
                 tablero.setTerminado(true);
                 remitente.salida.writeUTF("¡La partida ha terminado en empate!");
                 oponente.salida.writeUTF("¡La partida ha terminado en empate!");
+
                 rankingBD.actualizarResultados(nombreRemitente, nombreOponente, true);
+
                 manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
 
             } else {
@@ -265,14 +289,10 @@ public class ManejadorMensajes {
         }
     }
 
-
     public void procesarAbandono(String usuarioAbandona, String oponenteGana) throws IOException {
-
         if (rankingBD != null) {
             rankingBD.actualizarResultados(oponenteGana, usuarioAbandona, false);
         }
         manejadorInvitaciones.finalizarPartida(usuarioAbandona, oponenteGana);
     }
-
-
 }

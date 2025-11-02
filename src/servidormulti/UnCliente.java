@@ -12,18 +12,20 @@ public class UnCliente implements Runnable {
     private final String clienteId;
     private final ManejadorUsuarios manejadorUsuarios;
     private final ManejadorMensajes manejadorMensajes;
+    private final ManejadorGrupos manejadorGrupos;
     private String oponenteEnJuego = null;
-
     private String nombreUsuario = null;
     private boolean registrado = false;
+    private int idGrupoActual = 1; // ID 1 = "todos"
+    private String nombreGrupoActual = "todos";
 
-
-    public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes) throws IOException {
+    public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes, ManejadorGrupos manejadorGrupos) throws IOException {
         this.clienteId = clienteId;
         this.salida = new DataOutputStream(socket.getOutputStream());
         this.entrada = new DataInputStream(socket.getInputStream());
         this.manejadorUsuarios = manejadorUsuarios;
         this.manejadorMensajes = manejadorMensajes;
+        this.manejadorGrupos = manejadorGrupos;
 
         ServidorMulti.contadoresDeMensajes.put(clienteId, 0);
     }
@@ -52,9 +54,16 @@ public class UnCliente implements Runnable {
             if (exito) {
                 this.registrado = true;
                 ServidorMulti.contadoresDeMensajes.remove(this.clienteId);
-                salida.writeUTF("¡Ahora puedes enviar mensajes normalmente!");
+                manejadorGrupos.cambiarGrupo("todos", this);
+
             }
         } else {
+            if (this.idGrupoActual != 1) { // 1 es 'todos'
+                salida.writeUTF("Como invitado, has sido movido al grupo 'todos'.");
+                this.idGrupoActual = 1;
+                this.nombreGrupoActual = "todos";
+            }
+
 
             int contador = ServidorMulti.contadoresDeMensajes.get(clienteId) + 1;
             ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
@@ -67,6 +76,7 @@ public class UnCliente implements Runnable {
     }
 
     private void limpiar() {
+
         String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
         if (ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
             String oponente = ServidorMulti.partidasActivas.get(nombreUsuarioLimpio);
@@ -76,13 +86,12 @@ public class UnCliente implements Runnable {
                 try {
                     clienteOponente.salida.writeUTF("Tu oponente '" + nombreUsuarioLimpio + "' se ha desconectado. Has ganado por abandono.");
                 } catch (IOException e) {
+
                 }
             }
 
             try {
-
                 if (nombreUsuario != null) {
-
                     manejadorMensajes.procesarAbandono(nombreUsuarioLimpio, oponente);
                 } else {
                     manejadorMensajes.manejadorInvitaciones.finalizarPartida(nombreUsuarioLimpio, oponente);
@@ -92,6 +101,11 @@ public class UnCliente implements Runnable {
             }
         }
 
+
+        if (this.nombreUsuario != null) {
+            manejadorGrupos.actualizarEstadoLectura(this);
+
+        }
 
         if (nombreUsuario != null) {
             ServidorMulti.clientes.remove(nombreUsuario);
@@ -106,20 +120,23 @@ public class UnCliente implements Runnable {
     public String getNombreUsuario() { return nombreUsuario; }
     public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
 
+    public int getIdGrupoActual() { return idGrupoActual; }
+    public String getNombreGrupoActual() { return nombreGrupoActual; }
 
-    //agregue
+    public void setGrupoActual(int idGrupo, String nombreGrupo) {
+        this.idGrupoActual = idGrupo;
+        this.nombreGrupoActual = nombreGrupo;
+    }
+
     public String getOponenteEnJuego() {
         return oponenteEnJuego;
     }
-    //agreue
     public void setOponenteEnJuego(String oponenteEnJuego) {
         this.oponenteEnJuego = oponenteEnJuego;
     }
-    //agregue
     public void recibirInvitacion(String desdeUsuario) throws IOException {
         salida.writeUTF("[INVITACION] Invitación para jugar Gato de " + desdeUsuario +
                 ". Para aceptar: /aceptar " + desdeUsuario +
                 ", para rechazar: /rechazar " + desdeUsuario);
     }
-
 }
