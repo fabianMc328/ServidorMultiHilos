@@ -38,8 +38,10 @@ public class GruposBD {
             ResultSet rs = psCheck.executeQuery();
 
             if (rs.next()) {
+
                 if (solicitante.equals(rs.getString("creador_usuario"))) {
                     idGrupoBorrado = rs.getInt("id_grupo");
+
                     String sqlDelete = "DELETE FROM grupos WHERE id_grupo = ?";
                     try (PreparedStatement psDelete = conn.prepareStatement(sqlDelete)) {
                         psDelete.setInt(1, idGrupoBorrado);
@@ -91,7 +93,6 @@ public class GruposBD {
             return "Error al obtener lista de grupos.";
         }
     }
-
     public void unirseAGrupo(String usuario, int idGrupo) {
         String sql = "INSERT INTO membresias_grupo (id_usuario, id_grupo) VALUES (?, ?) ON DUPLICATE KEY UPDATE id_grupo=id_grupo";
         try (Connection conn = ConexionBD.getConnection();
@@ -103,8 +104,6 @@ public class GruposBD {
             e.printStackTrace();
         }
     }
-
-
     public void salirDeGrupo(String usuario, int idGrupo) {
         if (idGrupo == 1) return;
 
@@ -118,8 +117,6 @@ public class GruposBD {
             e.printStackTrace();
         }
     }
-
-
 
     public long guardarMensaje(int idGrupo, String remitente, String contenido) {
         String sql = "INSERT INTO mensajes_grupo (id_grupo, usuario_remitente, contenido) VALUES (?, ?, ?)";
@@ -141,8 +138,7 @@ public class GruposBD {
             return -1;
         }
     }
-
-    public long obtenerUltimoMensajeVisto(String usuario, int idGrupo) {
+    public long getUltimoMensajeVisto(String usuario, int idGrupo) {
         String sql = "SELECT ultimo_mensaje_visto_id FROM estado_lectura WHERE id_usuario = ? AND id_grupo = ?";
         try (Connection conn = ConexionBD.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -158,8 +154,10 @@ public class GruposBD {
             return 0;
         }
     }
-    public List<String> obtenerMensajesNuevos(int idGrupo, long ultimoMensajeVistoId, String usuario, String clienteId) {
+
+    public List<String> getMensajesNuevos(int idGrupo, long ultimoMensajeVistoId, String usuario, String clienteId) {
         List<String> mensajes = new ArrayList<>();
+
         String sql = "SELECT usuario_remitente, contenido, timestamp FROM mensajes_grupo " +
                 "WHERE id_grupo = ? AND id_mensaje > ? " +
                 "AND usuario_remitente != ? " +
@@ -170,8 +168,8 @@ public class GruposBD {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, idGrupo);
             ps.setLong(2, ultimoMensajeVistoId);
-            ps.setString(3, usuario);
-            ps.setString(4, "Invitado-" + clienteId);
+            ps.setString(3, usuario); // ej: 'fabian'
+            ps.setString(4, "Invitado-" + clienteId); // ej: 'Invitado-0'
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -186,6 +184,7 @@ public class GruposBD {
         }
         return mensajes;
     }
+
     public void actualizarUltimoMensajeVisto(String usuario, int idGrupo, long ultimoMensajeId) {
         if (ultimoMensajeId <= 0) return;
 
