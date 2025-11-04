@@ -24,7 +24,17 @@ public class ServidorMulti {
         GruposBD gruposBD = new GruposBD();
         ManejadorGrupos manejadorGrupos = new ManejadorGrupos(gruposBD, clientes);
         ManejadorUsuarios manejadorUsuarios = new ManejadorUsuarios(usuariosBD);
-        ManejadorMensajes manejadorMensajes = new ManejadorMensajes(bloqueosBD, usuariosBD, rankingBD, gruposBD, manejadorGrupos);
+        ManejadorInvitaciones manejadorInvitaciones = new ManejadorInvitaciones(bloqueosBD);
+
+        ManejadorMensajes manejadorMensajes = new ManejadorMensajes(
+                bloqueosBD,
+                usuariosBD,
+                rankingBD,
+                gruposBD,
+                manejadorGrupos,
+                manejadorUsuarios,
+                manejadorInvitaciones
+        );
 
 
         System.out.println("Servidor de chat iniciado...");
