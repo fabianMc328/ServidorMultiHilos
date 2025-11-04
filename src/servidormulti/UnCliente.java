@@ -12,13 +12,15 @@ public class UnCliente implements Runnable {
     private final String clienteId;
     private final ManejadorUsuarios manejadorUsuarios;
     private final ManejadorMensajes manejadorMensajes;
-    private final ManejadorGrupos manejadorGrupos; // Necesario para unir a "todos"
+    private final ManejadorGrupos manejadorGrupos;
 
     private String oponenteEnJuego = null;
     private String nombreUsuario = null;
     private boolean registrado = false;
-    private int idGrupoActual = 1; // ID 1 = "todos"
+
+    private int idGrupoActual = 1;
     private String nombreGrupoActual = "todos";
+
 
     public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes, ManejadorGrupos manejadorGrupos) throws IOException {
         this.clienteId = clienteId;
@@ -26,7 +28,7 @@ public class UnCliente implements Runnable {
         this.entrada = new DataInputStream(socket.getInputStream());
         this.manejadorUsuarios = manejadorUsuarios;
         this.manejadorMensajes = manejadorMensajes;
-        this.manejadorGrupos = manejadorGrupos; // Asignar
+        this.manejadorGrupos = manejadorGrupos;
 
         ServidorMulti.contadoresDeMensajes.put(clienteId, 0);
     }
@@ -36,21 +38,18 @@ public class UnCliente implements Runnable {
         try {
             while (true) {
                 String mensaje = entrada.readUTF();
+
                 if (registrado && (mensaje.equalsIgnoreCase("/login") || mensaje.equalsIgnoreCase("/register"))) {
                     salida.writeUTF("Ya estás logueado como: " + nombreUsuario);
                     continue;
                 }
 
-
                 if (registrado) {
-
                     manejadorMensajes.procesar(mensaje, this);
                 } else {
-
                     if (mensaje.equalsIgnoreCase("/register") || mensaje.equalsIgnoreCase("/login")) {
                         gestionarAutenticacion(mensaje);
                     } else {
-
                         gestionarMensajesDeInvitado(mensaje);
                     }
                 }
@@ -66,25 +65,30 @@ public class UnCliente implements Runnable {
         if (exito) {
             this.registrado = true;
             ServidorMulti.contadoresDeMensajes.remove(this.clienteId);
-            manejadorGrupos.cambiarGrupo("todos", this);
+
+            if (mensaje.equalsIgnoreCase("/login")) {
+                manejadorGrupos.cambiarGrupo("todos", this, false);
+            } else {
+                manejadorGrupos.unirseGrupoSinHistorial("todos", this);
+            }
         }
     }
 
     private void gestionarMensajesDeInvitado(String mensaje) throws IOException {
         int contador = ServidorMulti.contadoresDeMensajes.get(clienteId) + 1;
         ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
+
         if (contador > 3) {
             salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [/register] o [/login]");
         } else {
-
             if (this.idGrupoActual != 1) {
                 this.idGrupoActual = 1;
                 this.nombreGrupoActual = "todos";
             }
-
             manejadorMensajes.procesar(mensaje, this);
         }
     }
+
     private void limpiar() {
         String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
         if (ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
@@ -95,7 +99,7 @@ public class UnCliente implements Runnable {
                 try {
                     clienteOponente.salida.writeUTF("Tu oponente '" + nombreUsuarioLimpio + "' se ha desconectado. Has ganado por abandono.");
                 } catch (IOException e) {
-
+                    // Ignorar
                 }
             }
 
@@ -122,6 +126,12 @@ public class UnCliente implements Runnable {
         ServidorMulti.contadoresDeMensajes.remove(clienteId);
     }
 
+    public void resetearEstadoAInvitado() {
+        this.nombreUsuario = null;
+        this.registrado = false;
+        this.idGrupoActual = 1; // 1 = "todos"
+        this.nombreGrupoActual = "todos";
+    }
 
     public String getClienteId() { return clienteId; }
     public String getNombreUsuario() { return nombreUsuario; }
