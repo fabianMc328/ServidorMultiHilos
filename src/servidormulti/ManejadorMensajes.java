@@ -10,18 +10,37 @@ public class ManejadorMensajes {
     private final RankingBD rankingBD;
     private final GruposBD gruposBD;
     private final ManejadorGrupos manejadorGrupos;
+    private final ManejadorUsuarios manejadorUsuarios;
 
-    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos) {
+    // NUEVO: Constructor actualizado para aceptar ManejadorInvitaciones
+    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos, ManejadorUsuarios manejadorUsuarios, ManejadorInvitaciones manejadorInvitaciones) {
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
         this.rankingBD = rankingBD;
-        this.manejadorInvitaciones = new ManejadorInvitaciones();
+        this.manejadorInvitaciones = manejadorInvitaciones;
         this.gruposBD = gruposBD;
         this.manejadorGrupos = manejadorGrupos;
+        this.manejadorUsuarios = manejadorUsuarios;
     }
+
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario() != null ? remitente.getNombreUsuario() : "Invitado-" + remitente.getClienteId();
+
+        if (mensaje.equalsIgnoreCase("/cerrar-sesion")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("No puedes cerrar sesión si no has iniciado sesión.");
+                enviarListaDeComandos(remitente);
+                return;
+            }
+
+            manejadorGrupos.actualizarEstadoLectura(remitente);
+            manejadorUsuarios.cerrarSesion(remitente);
+
+            remitente.salida.writeUTF("Sesión cerrada correctamente. Has vuelto a ser un Invitado.");
+            enviarListaDeComandos(remitente);
+            return;
+        }
 
         if (mensaje.startsWith("/invitar ")) {
             if (remitente.getNombreUsuario() == null) {
@@ -30,6 +49,7 @@ public class ManejadorMensajes {
                 return;
             }
             String invitado = mensaje.substring(9).trim();
+            // Esta instancia ahora tiene la lógica de bloqueo
             manejadorInvitaciones.enviarInvitacion(nombreRemitente, invitado);
             return;
         }
@@ -83,12 +103,28 @@ public class ManejadorMensajes {
             return;
         }
 
+        // --- Lógica de Juego ---
         if (ServidorMulti.partidasActivas.containsKey(nombreRemitente)) {
-
+            String oponente = ServidorMulti.partidasActivas.get(nombreRemitente);
+            UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
+            if (clienteOponente != null) {
+                if (mensaje.startsWith("/gato ")) {
+                    procesarMovimientoGato(mensaje, remitente, clienteOponente);
+                } else {
+                    String texto = "[Juego Gato] " + nombreRemitente + ": " + mensaje;
+                    clienteOponente.salida.writeUTF(texto);
+                    remitente.salida.writeUTF(texto);
+                }
+            } else {
+                remitente.salida.writeUTF("Tu oponente ya no está conectado. La partida terminó.");
+                if(remitente.getNombreUsuario() != null) {
+                    procesarAbandono(oponente, nombreRemitente);
+                }
+            }
             return;
         }
 
-
+        // --- Lógica de Bloqueo ---
         if (mensaje.startsWith("/bloquear ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
@@ -117,7 +153,6 @@ public class ManejadorMensajes {
             return;
         }
 
-
         if (mensaje.startsWith("/")) {
             boolean comandoManejado = manejadorGrupos.procesarComandoGrupo(mensaje, remitente);
 
@@ -127,8 +162,6 @@ public class ManejadorMensajes {
             }
             return;
         }
-
-
         procesarMensajeGrupo(mensaje, remitente, nombreRemitente);
     }
 
@@ -141,6 +174,7 @@ public class ManejadorMensajes {
             sb.append("@<usuario> <mensaje>   - Enviar mensaje privado.\n");
             sb.append("/bloquear <usuario>     - Bloquear a un usuario.\n");
             sb.append("/desbloquear <usuario>  - Desbloquear a un usuario.\n");
+            sb.append("/cerrar-sesion          - Cerrar tu sesión actual.\n");
 
             sb.append("\n== Grupos ==\n");
             sb.append("/lista-grupos           - Ver todos los grupos.\n");
@@ -160,6 +194,7 @@ public class ManejadorMensajes {
             sb.append("/h2h <usuario>          - Ver tu historial contra otro jugador.\n");
 
         } else {
+
             sb.append("/login                  - Iniciar sesión.\n");
             sb.append("/register               - Registrar un nuevo usuario.\n");
             sb.append("/lista-grupos           - Ver todos los grupos.\n");
@@ -167,8 +202,6 @@ public class ManejadorMensajes {
 
         remitente.salida.writeUTF(sb.toString());
     }
-
-
     private void bloquearUsuario(String mensaje, UnCliente remitente) throws IOException {
         String aBloquear = mensaje.substring(10).trim();
         if (aBloquear.equalsIgnoreCase(remitente.getNombreUsuario())) {
