@@ -1,7 +1,6 @@
 package servidormulti;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,6 +9,11 @@ import static servidormulti.ServidorMulti.invitacionesRecibidas;
 import static servidormulti.ServidorMulti.partidasActivas;
 
 public class ManejadorInvitaciones {
+    private final BloqueosBD bloqueosBD;
+    public ManejadorInvitaciones(BloqueosBD bloqueosBD) {
+        this.bloqueosBD = bloqueosBD;
+    }
+
 
     public boolean enviarInvitacion(String remitente, String invitado) throws IOException {
         if (remitente.equalsIgnoreCase(invitado)) {
@@ -22,6 +26,17 @@ public class ManejadorInvitaciones {
             clientes.get(remitente).salida.writeUTF("El usuario '" + invitado + "' no está conectado.");
             return false;
         }
+
+        if (bloqueosBD.estaBloqueado(remitente, invitado)) {
+            clientes.get(remitente).salida.writeUTF("No puedes invitar a '" + invitado + "' porque lo tienes bloqueado.");
+            return false;
+        }
+
+        if (bloqueosBD.estaBloqueado(invitado, remitente)) {
+            clientes.get(remitente).salida.writeUTF("No puedes invitar a '" + invitado + "' porque te tiene bloqueado.");
+            return false;
+        }
+
 
         if (partidasActivas.containsKey(remitente)) {
             clientes.get(remitente).salida.writeUTF("Ya estás en una partida.");
