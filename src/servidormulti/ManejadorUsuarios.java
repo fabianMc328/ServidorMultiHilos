@@ -19,25 +19,31 @@ public class ManejadorUsuarios {
             cliente.salida.writeUTF(exito ? "Usuario registrado correctamente." : "El usuario ya existe.");
 
             if (exito) {
-                ServidorMulti.clientes.remove(cliente.getClienteId());
-                cliente.setNombreUsuario(usuario);
-                ServidorMulti.clientes.put(usuario, cliente);
+                synchronized (ServidorMulti.clientes) {
+                    ServidorMulti.clientes.remove(cliente.getClienteId());
+                    cliente.setNombreUsuario(usuario);
+                    ServidorMulti.clientes.put(usuario, cliente);
+                }
             }
 
         } else if (comando.equalsIgnoreCase("/login")) {
+
             boolean credencialesCorrectas = usuariosBD.verificarLogin(usuario, contra);
 
             if (!credencialesCorrectas) {
-                cliente.salida.writeUTF("El usuario no existe o contraseña incorrecta.");
+                cliente.salida.writeUTF("Datos no correctos o no existen.");
                 return false;
             }
+
             synchronized (ServidorMulti.clientes) {
+
                 if (ServidorMulti.clientes.containsKey(usuario)) {
-                    cliente.salida.writeUTF("Error: El usuario '" + usuario + "' ya está en línea.");
+                    cliente.salida.writeUTF("Error: El usuario '" + usuario + "' ya esta en linea.");
                     return false;
 
                 } else {
-                    cliente.salida.writeUTF("Sesión iniciada correctamente.");
+                    cliente.salida.writeUTF("Sesion iniciada correctamente.");
+
                     ServidorMulti.clientes.remove(cliente.getClienteId());
                     cliente.setNombreUsuario(usuario);
                     ServidorMulti.clientes.put(usuario, cliente);
@@ -46,6 +52,18 @@ public class ManejadorUsuarios {
                 }
             }
         }
+
         return exito;
     }
+
+    public void cerrarSesion(UnCliente cliente) {
+        synchronized (ServidorMulti.clientes) {
+            ServidorMulti.clientes.remove(cliente.getNombreUsuario());
+            cliente.resetearEstadoAInvitado();
+            ServidorMulti.clientes.put(cliente.getClienteId(), cliente);
+        }
+
+        ServidorMulti.contadoresDeMensajes.put(cliente.getClienteId(), 0);
+    }
+
 }

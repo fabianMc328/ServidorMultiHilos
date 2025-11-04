@@ -12,19 +12,21 @@ public class ManejadorGrupos {
         this.gruposBD = gruposBD;
         this.clientes = clientes;
     }
+
     public boolean procesarComandoGrupo(String mensaje, UnCliente remitente) throws IOException {
         String[] partes = mensaje.split(" ", 2);
         String comando = partes[0].toLowerCase();
         String argumento = (partes.length > 1) ? partes[1].trim().toLowerCase() : "";
+
+
         if (comando.equals("/lista-grupos")) {
             remitente.salida.writeUTF(gruposBD.getListaGrupos());
             return true;
         }
+
         if (remitente.getNombreUsuario() == null) {
             return false;
         }
-
-
         switch (comando) {
             case "/crear-grupo":
                 if (argumento.isEmpty()) {
@@ -51,7 +53,6 @@ public class ManejadorGrupos {
                 abandonarGrupo(remitente);
                 return true;
             default:
-
                 return false;
         }
     }
@@ -146,6 +147,19 @@ public class ManejadorGrupos {
             remitente.salida.writeUTF("--- Fin de mensajes no leídos ---");
         }
 
+        actualizarEstadoLectura(remitente);
+    }
+
+    public void unirseGrupoSinHistorial(String nombreGrupo, UnCliente remitente) throws IOException {
+        int idGrupoNuevo = gruposBD.getGrupoId(nombreGrupo);
+        if (idGrupoNuevo == -1) {
+            remitente.salida.writeUTF("Error: El grupo '" + nombreGrupo + "' no existe.");
+            return;
+        }
+        gruposBD.unirseAGrupo(remitente.getNombreUsuario(), idGrupoNuevo);
+        remitente.setGrupoActual(idGrupoNuevo, nombreGrupo);
+        remitente.salida.writeUTF("Te has unido al grupo: '" + nombreGrupo + "'.");
+        remitente.salida.writeUTF("No hay mensajes nuevos en este grupo.");
         actualizarEstadoLectura(remitente);
     }
 
