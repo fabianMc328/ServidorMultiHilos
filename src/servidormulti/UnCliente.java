@@ -79,7 +79,7 @@ public class UnCliente implements Runnable {
         ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
 
         if (contador > 3) {
-            salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [/register] o [/login]");
+            salida.writeUTF("Has enviado 3 mensajes. Por favor, registrate usando [/register] o [/login]");
         } else {
             if (this.idGrupoActual != 1) {
                 this.idGrupoActual = 1;
@@ -152,7 +152,7 @@ public class UnCliente implements Runnable {
         this.oponenteEnJuego = oponenteEnJuego;
     }
     public void recibirInvitacion(String desdeUsuario) throws IOException {
-        salida.writeUTF("[INVITACION] Invitación para jugar Gato de " + desdeUsuario +
+        salida.writeUTF("[INVITACION] Invitacion para jugar Gato de " + desdeUsuario +
                 ". Para aceptar: /aceptar " + desdeUsuario +
                 ", para rechazar: /rechazar " + desdeUsuario);
     }

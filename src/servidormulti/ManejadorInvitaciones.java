@@ -44,7 +44,7 @@ public class ManejadorInvitaciones {
         }
 
         if (partidasActivas.containsKey(invitado)) {
-            clientes.get(remitente).salida.writeUTF("El usuario '" + invitado + "' ya está en una partida.");
+            clientes.get(remitente).salida.writeUTF("El usuario '" + invitado + "' ya esta en una partida.");
             return false;
         }
 
@@ -79,7 +79,7 @@ public class ManejadorInvitaciones {
 
         UnCliente clienteInvitador = clientes.get(invitador);
         if (clienteInvitador == null) {
-            clientes.get(invitado).salida.writeUTF("El usuario que te invitó no está conectado.");
+            clientes.get(invitado).salida.writeUTF("El usuario que te invito no está conectado.");
             invitadores.remove(invitador);
             return;
         }
@@ -101,10 +101,10 @@ public class ManejadorInvitaciones {
         String tableroInicial = nuevoJuego.mostrarTablero();
 
 
-        clientes.get(invitado).salida.writeUTF("Has aceptado la invitación de '" + invitador + "'. ¡Comienza el juego de Gato!\n" +
+        clientes.get(invitado).salida.writeUTF("Has aceptado la invitacion de '" + invitador + "'. ¡Comienza el juego de Gato!\n" +
                 "Tú eres 'O'. Espera el turno de 'X'.\n" + tableroInicial + instrucciones);
 
-        clienteInvitador.salida.writeUTF("El usuario '" + invitado + "' ha aceptado tu invitación. ¡Comienza el juego de Gato!\n" +
+        clienteInvitador.salida.writeUTF("El usuario '" + invitado + "' ha aceptado tu invitacion. ¡Comienza el juego de Gato!\n" +
                 "Tú eres 'X'. Es tu turno.\n" + tableroInicial + instrucciones);
 
     }
@@ -112,16 +112,16 @@ public class ManejadorInvitaciones {
     public void rechazarInvitacion(String invitado, String invitador) throws IOException {
         Set<String> invitadores = invitacionesRecibidas.get(invitado);
         if (invitadores == null || !invitadores.contains(invitador)) {
-            clientes.get(invitado).salida.writeUTF("No tienes una invitación de '" + invitador + "'.");
+            clientes.get(invitado).salida.writeUTF("No tienes una invitacion de '" + invitador + "'.");
             return;
         }
 
         invitadores.remove(invitador);
 
-        clientes.get(invitado).salida.writeUTF("Has rechazado la invitación de '" + invitador + "'.");
+        clientes.get(invitado).salida.writeUTF("Has rechazado la invitacion de '" + invitador + "'.");
         UnCliente clienteInvitador = clientes.get(invitador);
         if (clienteInvitador != null) {
-            clienteInvitador.salida.writeUTF("El usuario '" + invitado + "' ha rechazado tu invitación.");
+            clienteInvitador.salida.writeUTF("El usuario '" + invitado + "' ha rechazado tu invitacion.");
         }
     }
 

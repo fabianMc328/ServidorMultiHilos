@@ -29,7 +29,7 @@ public class ManejadorMensajes {
 
         if (mensaje.equalsIgnoreCase("/cerrar-sesion")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("No puedes cerrar sesión si no has iniciado sesión.");
+                remitente.salida.writeUTF("No puedes cerrar sesion si no has iniciado sesion.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -37,14 +37,14 @@ public class ManejadorMensajes {
             manejadorGrupos.actualizarEstadoLectura(remitente);
             manejadorUsuarios.cerrarSesion(remitente);
 
-            remitente.salida.writeUTF("Sesión cerrada correctamente. Has vuelto a ser un Invitado.");
+            remitente.salida.writeUTF("Sesion cerrada correctamente. Has vuelto a ser un Invitado.");
             enviarListaDeComandos(remitente);
             return;
         }
 
         if (mensaje.startsWith("/invitar ")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
+                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -55,7 +55,7 @@ public class ManejadorMensajes {
         }
         if (mensaje.startsWith("/aceptar ")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
+                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -65,7 +65,7 @@ public class ManejadorMensajes {
         }
         if (mensaje.startsWith("/rechazar ")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
+                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -75,7 +75,7 @@ public class ManejadorMensajes {
         }
         if (mensaje.equalsIgnoreCase("/ranking")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
+                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -85,7 +85,7 @@ public class ManejadorMensajes {
         }
         if (mensaje.startsWith("/h2h ")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
+                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -116,7 +116,7 @@ public class ManejadorMensajes {
                     remitente.salida.writeUTF(texto);
                 }
             } else {
-                remitente.salida.writeUTF("Tu oponente ya no está conectado. La partida terminó.");
+                remitente.salida.writeUTF("Tu oponente ya no está conectado. La partida termino.");
                 if(remitente.getNombreUsuario() != null) {
                     procesarAbandono(oponente, nombreRemitente);
                 }
@@ -127,7 +127,7 @@ public class ManejadorMensajes {
         // --- Lógica de Bloqueo ---
         if (mensaje.startsWith("/bloquear ")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
+                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -135,7 +135,7 @@ public class ManejadorMensajes {
             return;
         } else if (mensaje.startsWith("/desbloquear ")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para usar este comando.");
+                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -145,7 +145,7 @@ public class ManejadorMensajes {
 
         if (mensaje.startsWith("@")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesión para enviar mensajes privados.");
+                remitente.salida.writeUTF("Debes iniciar sesion para enviar mensajes privados.");
                 enviarListaDeComandos(remitente);
                 return;
             }
@@ -195,7 +195,7 @@ public class ManejadorMensajes {
 
         } else {
 
-            sb.append("/login                  - Iniciar sesión.\n");
+            sb.append("/login                  - Iniciar sesion.\n");
             sb.append("/register               - Registrar un nuevo usuario.\n");
             sb.append("/lista-grupos           - Ver todos los grupos.\n");
         }
@@ -326,7 +326,7 @@ public class ManejadorMensajes {
 
         String[] partes = mensaje.split(" ");
         if (partes.length != 3) {
-            remitente.salida.writeUTF("Comando inválido. Usa: /gato [fila] [columna]");
+            remitente.salida.writeUTF("Comando invalido. Usa: /gato [fila] [columna]");
             return;
         }
 
@@ -336,7 +336,7 @@ public class ManejadorMensajes {
 
             boolean exito = tablero.hacerMovimiento(fila, col);
             if (!exito) {
-                remitente.salida.writeUTF("Movimiento inválido. (Posición ocupada o fuera de rango [0-2]).");
+                remitente.salida.writeUTF("Movimiento invalido. (Posición ocupada o fuera de rango [0-2]).");
                 return;
             }
 
@@ -371,7 +371,7 @@ public class ManejadorMensajes {
             }
 
         } catch (NumberFormatException e) {
-            remitente.salida.writeUTF("Comando inválido. Fila y columna deben ser números (0, 1, o 2).");
+            remitente.salida.writeUTF("Comando invalido. Fila y columna deben ser números (0, 1, o 2).");
         }
     }
 
