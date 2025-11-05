@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Set; // NUEVO
 
 public class UnCliente implements Runnable {
 
@@ -14,7 +15,9 @@ public class UnCliente implements Runnable {
     private final ManejadorMensajes manejadorMensajes;
     private final ManejadorGrupos manejadorGrupos;
 
-    private String oponenteEnJuego = null;
+    private String oponenteEnFoco = null;
+
+
     private String nombreUsuario = null;
     private boolean registrado = false;
 
@@ -79,7 +82,7 @@ public class UnCliente implements Runnable {
         ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
 
         if (contador > 3) {
-            salida.writeUTF("Has enviado 3 mensajes. Por favor, registrate usando [/register] o [/login]");
+            salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [/register] o [/login]");
         } else {
             if (this.idGrupoActual != 1) {
                 this.idGrupoActual = 1;
@@ -89,28 +92,33 @@ public class UnCliente implements Runnable {
         }
     }
 
+
     private void limpiar() {
         String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
-        if (ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
-            String oponente = ServidorMulti.partidasActivas.get(nombreUsuarioLimpio);
-            UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
 
-            if (clienteOponente != null) {
+
+        if (nombreUsuario != null && ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
+            Set<String> oponentes = new java.util.HashSet<>(ServidorMulti.partidasActivas.get(nombreUsuarioLimpio));
+
+            for (String oponente : oponentes) {
+                UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
+
+                if (clienteOponente != null) {
+                    try {
+                        clienteOponente.salida.writeUTF("Tu oponente '" + nombreUsuarioLimpio + "' se ha desconectado. Has ganado por abandono.");
+                        if(clienteOponente.getOponenteEnFoco() != null && clienteOponente.getOponenteEnFoco().equals(nombreUsuarioLimpio)) {
+                            clienteOponente.setOponenteEnFoco(null);
+                        }
+                    } catch (IOException e) {
+
+                    }
+                }
+
                 try {
-                    clienteOponente.salida.writeUTF("Tu oponente '" + nombreUsuarioLimpio + "' se ha desconectado. Has ganado por abandono.");
-                } catch (IOException e) {
-                    // Ignorar
-                }
-            }
-
-            try {
-                if (nombreUsuario != null) {
                     manejadorMensajes.procesarAbandono(nombreUsuarioLimpio, oponente);
-                } else {
-                    manejadorMensajes.manejadorInvitaciones.finalizarPartida(nombreUsuarioLimpio, oponente);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
 
@@ -129,8 +137,9 @@ public class UnCliente implements Runnable {
     public void resetearEstadoAInvitado() {
         this.nombreUsuario = null;
         this.registrado = false;
-        this.idGrupoActual = 1; // 1 = "todos"
+        this.idGrupoActual = 1;
         this.nombreGrupoActual = "todos";
+        this.oponenteEnFoco = null;
     }
 
     public String getClienteId() { return clienteId; }
@@ -145,12 +154,23 @@ public class UnCliente implements Runnable {
         this.nombreGrupoActual = nombreGrupo;
     }
 
+
+    public String getOponenteEnFoco() {
+        return oponenteEnFoco;
+    }
+    public void setOponenteEnFoco(String oponenteEnFoco) {
+        this.oponenteEnFoco = oponenteEnFoco;
+    }
+
+
+
     public String getOponenteEnJuego() {
-        return oponenteEnJuego;
+        return oponenteEnFoco;
     }
     public void setOponenteEnJuego(String oponenteEnJuego) {
-        this.oponenteEnJuego = oponenteEnJuego;
+        this.oponenteEnFoco = oponenteEnJuego;
     }
+
     public void recibirInvitacion(String desdeUsuario) throws IOException {
         salida.writeUTF("[INVITACION] Invitacion para jugar Gato de " + desdeUsuario +
                 ". Para aceptar: /aceptar " + desdeUsuario +

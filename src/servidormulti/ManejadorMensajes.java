@@ -1,6 +1,8 @@
 package servidormulti;
 
 import java.io.IOException;
+import java.util.Arrays; // NUEVO
+import java.util.Set; // NUEVO
 import static servidormulti.ServidorMulti.clientes;
 
 public class ManejadorMensajes {
@@ -12,7 +14,6 @@ public class ManejadorMensajes {
     private final ManejadorGrupos manejadorGrupos;
     private final ManejadorUsuarios manejadorUsuarios;
 
-    // NUEVO: Constructor actualizado para aceptar ManejadorInvitaciones
     public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos, ManejadorUsuarios manejadorUsuarios, ManejadorInvitaciones manejadorInvitaciones) {
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
@@ -22,7 +23,6 @@ public class ManejadorMensajes {
         this.manejadorGrupos = manejadorGrupos;
         this.manejadorUsuarios = manejadorUsuarios;
     }
-
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario() != null ? remitente.getNombreUsuario() : "Invitado-" + remitente.getClienteId();
@@ -49,7 +49,6 @@ public class ManejadorMensajes {
                 return;
             }
             String invitado = mensaje.substring(9).trim();
-            // Esta instancia ahora tiene la lógica de bloqueo
             manejadorInvitaciones.enviarInvitacion(nombreRemitente, invitado);
             return;
         }
@@ -103,28 +102,33 @@ public class ManejadorMensajes {
             return;
         }
 
-        // --- Lógica de Juego ---
-        if (ServidorMulti.partidasActivas.containsKey(nombreRemitente)) {
-            String oponente = ServidorMulti.partidasActivas.get(nombreRemitente);
-            UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
-            if (clienteOponente != null) {
-                if (mensaje.startsWith("/gato ")) {
-                    procesarMovimientoGato(mensaje, remitente, clienteOponente);
-                } else {
-                    String texto = "[Juego Gato] " + nombreRemitente + ": " + mensaje;
-                    clienteOponente.salida.writeUTF(texto);
-                    remitente.salida.writeUTF(texto);
-                }
-            } else {
-                remitente.salida.writeUTF("Tu oponente ya no está conectado. La partida termino.");
-                if(remitente.getNombreUsuario() != null) {
-                    procesarAbandono(oponente, nombreRemitente);
-                }
+        if (mensaje.startsWith("/gato ")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesion para jugar.");
+                return;
             }
+            procesarMovimientoGato(mensaje, remitente);
             return;
         }
 
-        // --- Lógica de Bloqueo ---
+        if (mensaje.equalsIgnoreCase("/juego-lista")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesion para ver tus partidas.");
+                return;
+            }
+            listarPartidas(remitente);
+            return;
+        }
+
+        if (mensaje.startsWith("/juego-focus ")) {
+            if (remitente.getNombreUsuario() == null) {
+                remitente.salida.writeUTF("Debes iniciar sesion para cambiar de foco.");
+                return;
+            }
+            enfocarPartida(mensaje, remitente);
+            return;
+        }
+
         if (mensaje.startsWith("/bloquear ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
@@ -162,6 +166,7 @@ public class ManejadorMensajes {
             }
             return;
         }
+
         procesarMensajeGrupo(mensaje, remitente, nombreRemitente);
     }
 
@@ -174,7 +179,7 @@ public class ManejadorMensajes {
             sb.append("@<usuario> <mensaje>   - Enviar mensaje privado.\n");
             sb.append("/bloquear <usuario>     - Bloquear a un usuario.\n");
             sb.append("/desbloquear <usuario>  - Desbloquear a un usuario.\n");
-            sb.append("/cerrar-sesion          - Cerrar tu sesión actual.\n");
+            sb.append("/cerrar-sesion          - Cerrar tu sesion actual.\n");
 
             sb.append("\n== Grupos ==\n");
             sb.append("/lista-grupos           - Ver todos los grupos.\n");
@@ -186,7 +191,9 @@ public class ManejadorMensajes {
             sb.append("\n== Juego de Gato ==\n");
             sb.append("/invitar <usuario>      - Invitar a jugar.\n");
             sb.append("/aceptar <usuario>      - Aceptar una invitación.\n");
-            sb.append("/rechazar <usuario>     - Rechazar una invitación.\n");
+            sb.append("/rechazar <usuario>     - Rechazar una invitacion.\n");
+            sb.append("/juego-lista            - Muestra tus partidas activas.\n"); // NUEVO
+            sb.append("/juego-focus <oponente> - Enfoca una partida para enviar comandos /gato.\n"); // NUEVO
             sb.append("/gato <fila> <col>    - (En partida) Hacer un movimiento (ej: /gato 0 1).\n");
 
             sb.append("\n== Ranking ==\n");
@@ -194,7 +201,7 @@ public class ManejadorMensajes {
             sb.append("/h2h <usuario>          - Ver tu historial contra otro jugador.\n");
 
         } else {
-
+            // Comandos para invitados (no logueados)
             sb.append("/login                  - Iniciar sesion.\n");
             sb.append("/register               - Registrar un nuevo usuario.\n");
             sb.append("/lista-grupos           - Ver todos los grupos.\n");
@@ -202,6 +209,7 @@ public class ManejadorMensajes {
 
         remitente.salida.writeUTF(sb.toString());
     }
+
     private void bloquearUsuario(String mensaje, UnCliente remitente) throws IOException {
         String aBloquear = mensaje.substring(10).trim();
         if (aBloquear.equalsIgnoreCase(remitente.getNombreUsuario())) {
@@ -306,21 +314,106 @@ public class ManejadorMensajes {
         }
     }
 
-    private void procesarMovimientoGato(String mensaje, UnCliente remitente, UnCliente oponente) throws IOException {
+
+    private void listarPartidas(UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario();
-        String nombreOponente = oponente.getNombreUsuario();
+        Set<String> oponentes = ServidorMulti.partidasActivas.get(nombreRemitente);
 
-        TableroGato tablero = ServidorMulti.tablerosPartidas.get(nombreRemitente);
-
-        if (tablero == null || tablero.isTerminado()) {
-            remitente.salida.writeUTF("No hay ninguna partida activa o ya ha terminado.");
+        if (oponentes == null || oponentes.isEmpty()) {
+            remitente.salida.writeUTF("No tienes ninguna partida activa.");
             return;
         }
 
-        char simboloRemitente = ServidorMulti.simbolosJugadores.get(nombreRemitente);
+        StringBuilder sb = new StringBuilder("--- Tus Partidas Activas ---\n");
+        String focoActual = remitente.getOponenteEnFoco();
 
-        if (tablero.getTurno() != simboloRemitente) {
-            remitente.salida.writeUTF("No es tu turno.");
+        for (String oponente : oponentes) {
+            String gameId = crearGameId(nombreRemitente, oponente);
+            TableroGato tablero = ServidorMulti.tablerosPartidas.get(gameId);
+
+            if (tablero == null) continue; // Partida fantasma, se limpiará sola
+
+            sb.append("- Vs: ").append(oponente);
+
+
+            if (oponente.equals(focoActual)) {
+                sb.append(" (ENFOCADO)");
+            }
+
+            if (tablero.getTurno().equals(nombreRemitente)) {
+                sb.append(" - (Es tu turno)\n");
+            } else {
+                sb.append(" - (Turno de ").append(oponente).append(")\n");
+            }
+        }
+        remitente.salida.writeUTF(sb.toString());
+    }
+
+    private void enfocarPartida(String mensaje, UnCliente remitente) throws IOException {
+        String nombreRemitente = remitente.getNombreUsuario();
+        String oponente = mensaje.substring(13).trim();
+
+        if (oponente.equalsIgnoreCase(nombreRemitente)) {
+            remitente.salida.writeUTF("No puedes jugar contra ti mismo.");
+            return;
+        }
+
+        Set<String> oponentes = ServidorMulti.partidasActivas.get(nombreRemitente);
+        if (oponentes == null || !oponentes.contains(oponente)) {
+            remitente.salida.writeUTF("No tienes una partida activa con '" + oponente + "'.");
+            return;
+        }
+
+        remitente.setOponenteEnFoco(oponente);
+        remitente.salida.writeUTF("Ahora estás enfocado en la partida con '" + oponente + "'.");
+
+
+        String gameId = crearGameId(nombreRemitente, oponente);
+        TableroGato tablero = ServidorMulti.tablerosPartidas.get(gameId);
+        if (tablero != null) {
+            remitente.salida.writeUTF(tablero.mostrarTablero());
+            if (tablero.getTurno().equals(nombreRemitente)) {
+                remitente.salida.writeUTF("Es tu turno.");
+            } else {
+                remitente.salida.writeUTF("Es el turno de '" + oponente + "'.");
+            }
+        }
+    }
+
+
+    private String crearGameId(String j1, String j2) {
+        String[] nombres = {j1, j2};
+        Arrays.sort(nombres);
+        return nombres[0] + "-" + nombres[1];
+    }
+
+    private void procesarMovimientoGato(String mensaje, UnCliente remitente) throws IOException {
+        String nombreRemitente = remitente.getNombreUsuario();
+
+
+        String nombreOponente = remitente.getOponenteEnFoco();
+        if (nombreOponente == null) {
+            remitente.salida.writeUTF("No estas enfocado en ninguna partida. Usa /juego-focus <oponente> para elegir una.");
+            return;
+        }
+
+        UnCliente clienteOponente = ServidorMulti.clientes.get(nombreOponente);
+        if (clienteOponente == null) {
+            remitente.salida.writeUTF("Tu oponente '" + nombreOponente + "' ya no está conectado. La partida termino.");
+            manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
+            return;
+        }
+
+        String gameId = crearGameId(nombreRemitente, nombreOponente);
+        TableroGato tablero = ServidorMulti.tablerosPartidas.get(gameId);
+
+        if (tablero == null || tablero.isTerminado()) {
+            remitente.salida.writeUTF("No hay ninguna partida activa con '" + nombreOponente + "' o ya ha terminado.");
+            return;
+        }
+
+        if (!tablero.getTurno().equals(nombreRemitente)) {
+            remitente.salida.writeUTF("No es tu turno en la partida con '" + nombreOponente + "'.");
             return;
         }
 
@@ -336,42 +429,38 @@ public class ManejadorMensajes {
 
             boolean exito = tablero.hacerMovimiento(fila, col);
             if (!exito) {
-                remitente.salida.writeUTF("Movimiento invalido. (Posición ocupada o fuera de rango [0-2]).");
+                remitente.salida.writeUTF("Movimiento invalido. (Posicion ocupada o fuera de rango [0-2]).");
                 return;
             }
 
-
             String estadoTablero = "\n" + tablero.mostrarTablero();
-            remitente.salida.writeUTF("Tu movimiento:" + estadoTablero);
-            oponente.salida.writeUTF("Movimiento de " + nombreRemitente + ":" + estadoTablero);
+            remitente.salida.writeUTF("Tu movimiento (vs " + nombreOponente + "):" + estadoTablero);
+            clienteOponente.salida.writeUTF("Movimiento de " + nombreRemitente + " (vs ti):" + estadoTablero);
 
             if (tablero.verificarGanador()) {
                 tablero.setTerminado(true);
                 remitente.salida.writeUTF("¡Felicidades, has ganado!");
-                oponente.salida.writeUTF("¡" + nombreRemitente + " ha ganado la partida!");
+                clienteOponente.salida.writeUTF("¡" + nombreRemitente + " ha ganado la partida!");
 
                 rankingBD.actualizarResultados(nombreRemitente, nombreOponente, false);
-
                 manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
 
             } else if (tablero.tableroCompleto()) {
                 tablero.setTerminado(true);
                 remitente.salida.writeUTF("¡La partida ha terminado en empate!");
-                oponente.salida.writeUTF("¡La partida ha terminado en empate!");
+                clienteOponente.salida.writeUTF("¡La partida ha terminado en empate!");
 
                 rankingBD.actualizarResultados(nombreRemitente, nombreOponente, true);
-
                 manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
 
             } else {
-
                 tablero.cambiarTurno();
                 remitente.salida.writeUTF("Turno de " + nombreOponente + ".");
-                oponente.salida.writeUTF("Es tu turno.");
+                clienteOponente.salida.writeUTF("Es tu turno.");
             }
 
         } catch (NumberFormatException e) {
-            remitente.salida.writeUTF("Comando invalido. Fila y columna deben ser números (0, 1, o 2).");
+            remitente.salida.writeUTF("Comando invalido. Fila y columna deben ser numeros (0, 1, o 2).");
         }
     }
 
