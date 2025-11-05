@@ -2,27 +2,38 @@ package servidormulti;
 
 public class TableroGato {
     private final char[][] tablero;
-    private char turno; // 'X' o 'O'
     private boolean terminado;
 
-    public TableroGato(char turnoInicial) {
+    private final String jugadorX;
+    private final String jugadorO;
+    private String jugadorTurno;
+
+
+
+    public TableroGato(String jugadorX, String jugadorO) {
+        this.jugadorX = jugadorX;
+        this.jugadorO = jugadorO;
+        this.jugadorTurno = jugadorX;
+
+
         tablero = new char[3][3];
         for (int i = 0; i < 3; i++) {
             for (int j=0; j<3; j++) {
                 tablero[i][j] = ' ';
             }
         }
-        this.turno = turnoInicial;
         this.terminado = false;
     }
 
-    public char getTurno() {
-        return turno;
+
+    public String getTurno() {
+        return jugadorTurno;
     }
 
     public void cambiarTurno() {
-        turno = (turno == 'X') ? 'O' : 'X';
+        jugadorTurno = (jugadorTurno.equals(jugadorX)) ? jugadorO : jugadorX;
     }
+
 
     public boolean isTerminado() {
         return terminado;
@@ -36,7 +47,9 @@ public class TableroGato {
         if (fila < 0 || fila > 2 || columna < 0 || columna > 2) return false;
         if (tablero[fila][columna] != ' ') return false;
 
-        tablero[fila][columna] = turno;
+
+        char simbolo = (jugadorTurno.equals(jugadorX)) ? 'X' : 'O';
+        tablero[fila][columna] = simbolo;
         return true;
     }
 
