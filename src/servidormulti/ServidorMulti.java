@@ -11,10 +11,10 @@ public class ServidorMulti {
     public static Map<String, UnCliente> clientes = new ConcurrentHashMap<>();
     public static Map<String, Integer> contadoresDeMensajes = new ConcurrentHashMap<>();
     public static Map<String, Set<String>> invitacionesRecibidas = new ConcurrentHashMap<>();
-    public static Map<String, String> partidasActivas = new ConcurrentHashMap<>();
-    public static Map<String, TableroGato> tablerosPartidas = new ConcurrentHashMap<>();
-    public static Map<String, Character> simbolosJugadores = new ConcurrentHashMap<>();
 
+    public static Map<String, Set<String>> partidasActivas = new ConcurrentHashMap<>();
+
+    public static Map<String, TableroGato> tablerosPartidas = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws IOException {
 
@@ -24,6 +24,7 @@ public class ServidorMulti {
         GruposBD gruposBD = new GruposBD();
         ManejadorGrupos manejadorGrupos = new ManejadorGrupos(gruposBD, clientes);
         ManejadorUsuarios manejadorUsuarios = new ManejadorUsuarios(usuariosBD);
+
         ManejadorInvitaciones manejadorInvitaciones = new ManejadorInvitaciones(bloqueosBD);
 
         ManejadorMensajes manejadorMensajes = new ManejadorMensajes(
@@ -35,7 +36,6 @@ public class ServidorMulti {
                 manejadorUsuarios,
                 manejadorInvitaciones
         );
-
 
         System.out.println("Servidor de chat iniciado...");
         try (ServerSocket servidorSocket = new ServerSocket(8080)) {
