@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 public class ServidorMulti {
     public static Map<String, UnCliente> clientes = new ConcurrentHashMap<>();
     public static Map<String, Integer> contadoresDeMensajes = new ConcurrentHashMap<>();
@@ -38,7 +39,9 @@ public class ServidorMulti {
         );
 
         System.out.println("Servidor de chat iniciado...");
-        try (ServerSocket servidorSocket = new ServerSocket(8080)) {
+
+
+        try (ServerSocket servidorSocket = new ServerSocket(Constantes.PUERTO_SERVIDOR)) {
             int contadorId = 0;
             while (true) {
                 Socket s = servidorSocket.accept();
