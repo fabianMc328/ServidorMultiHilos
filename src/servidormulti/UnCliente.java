@@ -4,7 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Set; // NUEVO
+import java.util.Set;
 
 public class UnCliente implements Runnable {
 
@@ -21,8 +21,8 @@ public class UnCliente implements Runnable {
     private String nombreUsuario = null;
     private boolean registrado = false;
 
-    private int idGrupoActual = 1;
-    private String nombreGrupoActual = "todos";
+    private int idGrupoActual = Constantes.ID_GRUPO_TODOS;
+    private String nombreGrupoActual = Constantes.NOMBRE_GRUPO_TODOS;
 
 
     public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes, ManejadorGrupos manejadorGrupos) throws IOException {
@@ -63,30 +63,38 @@ public class UnCliente implements Runnable {
         }
     }
 
+
     private void gestionarAutenticacion(String mensaje) throws IOException {
-        boolean exito = manejadorUsuarios.ParaRegistroOlogin(mensaje, this);
+
+        String usuario = this.entrada.readUTF();
+        String contra = this.entrada.readUTF();
+
+        boolean exito = manejadorUsuarios.procesarAutenticacion(mensaje, usuario, contra, this);
+
         if (exito) {
             this.registrado = true;
             ServidorMulti.contadoresDeMensajes.remove(this.clienteId);
 
+            String grupoAUnirse = Constantes.NOMBRE_GRUPO_TODOS;
             if (mensaje.equalsIgnoreCase("/login")) {
-                manejadorGrupos.cambiarGrupo("todos", this, false);
+                manejadorGrupos.cambiarGrupo(grupoAUnirse, this, false);
             } else {
-                manejadorGrupos.unirseGrupoSinHistorial("todos", this);
+                manejadorGrupos.unirseGrupoSinHistorial(grupoAUnirse, this);
             }
         }
     }
+
 
     private void gestionarMensajesDeInvitado(String mensaje) throws IOException {
         int contador = ServidorMulti.contadoresDeMensajes.get(clienteId) + 1;
         ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
 
-        if (contador > 3) {
-            salida.writeUTF("Has enviado 3 mensajes. Por favor, regístrate usando [/register] o [/login]");
+        if (contador > Constantes.LIMITE_MENSAJES_INVITADO) {
+            salida.writeUTF("Has enviado " + Constantes.LIMITE_MENSAJES_INVITADO + " mensajes. Por favor, regístrate usando [/register] o [/login]");
         } else {
-            if (this.idGrupoActual != 1) {
-                this.idGrupoActual = 1;
-                this.nombreGrupoActual = "todos";
+            if (this.idGrupoActual != Constantes.ID_GRUPO_TODOS) {
+                this.idGrupoActual = Constantes.ID_GRUPO_TODOS;
+                this.nombreGrupoActual = Constantes.NOMBRE_GRUPO_TODOS;
             }
             manejadorMensajes.procesar(mensaje, this);
         }
@@ -137,8 +145,8 @@ public class UnCliente implements Runnable {
     public void resetearEstadoAInvitado() {
         this.nombreUsuario = null;
         this.registrado = false;
-        this.idGrupoActual = 1;
-        this.nombreGrupoActual = "todos";
+        this.idGrupoActual = Constantes.ID_GRUPO_TODOS;
+        this.nombreGrupoActual = Constantes.NOMBRE_GRUPO_TODOS;
         this.oponenteEnFoco = null;
     }
 
@@ -148,6 +156,8 @@ public class UnCliente implements Runnable {
 
     public int getIdGrupoActual() { return idGrupoActual; }
     public String getNombreGrupoActual() { return nombreGrupoActual; }
+
+
 
     public void setGrupoActual(int idGrupo, String nombreGrupo) {
         this.idGrupoActual = idGrupo;

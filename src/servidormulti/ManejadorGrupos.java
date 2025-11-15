@@ -58,7 +58,8 @@ public class ManejadorGrupos {
     }
 
     private void crearGrupo(String nombreGrupo, UnCliente remitente) throws IOException {
-        if (nombreGrupo.equalsIgnoreCase("todos")) {
+
+        if (nombreGrupo.equalsIgnoreCase(Constantes.NOMBRE_GRUPO_TODOS)) {
             remitente.salida.writeUTF("No puedes crear un grupo llamado 'todos'.");
             return;
         }
@@ -73,7 +74,8 @@ public class ManejadorGrupos {
     }
 
     private void borrarGrupo(String nombreGrupo, UnCliente remitente) throws IOException {
-        if (nombreGrupo.equalsIgnoreCase("todos")) {
+
+        if (nombreGrupo.equalsIgnoreCase(Constantes.NOMBRE_GRUPO_TODOS)) {
             remitente.salida.writeUTF("No puedes borrar el grupo 'todos'.");
             return;
         }
@@ -86,7 +88,8 @@ public class ManejadorGrupos {
             for (UnCliente cliente : clientes.values()) {
                 if (cliente.getIdGrupoActual() == idGrupoBorrado) {
                     cliente.salida.writeUTF("El grupo '" + nombreGrupo + "' ha sido borrado por su creador.");
-                    cambiarGrupo("todos", cliente, true);
+
+                    cambiarGrupo(Constantes.NOMBRE_GRUPO_TODOS, cliente, true);
                 }
             }
         } else {
@@ -95,7 +98,8 @@ public class ManejadorGrupos {
     }
 
     private void abandonarGrupo(UnCliente remitente) throws IOException {
-        if (remitente.getIdGrupoActual() == 1) { // 1 es 'todos'
+
+        if (remitente.getIdGrupoActual() == Constantes.ID_GRUPO_TODOS) { // 1 es 'todos'
             remitente.salida.writeUTF("No puedes abandonar el grupo 'todos'.");
             return;
         }
@@ -104,7 +108,8 @@ public class ManejadorGrupos {
         gruposBD.salirDeGrupo(remitente.getNombreUsuario(), remitente.getIdGrupoActual());
 
         remitente.salida.writeUTF("Has abandonado el grupo '" + nombreGrupoAnterior + "'.");
-        cambiarGrupo("todos", remitente, false);
+
+        cambiarGrupo(Constantes.NOMBRE_GRUPO_TODOS, remitente, false);
     }
 
     public void cambiarGrupo(String nombreGrupo, UnCliente remitente) throws IOException {

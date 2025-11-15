@@ -9,9 +9,7 @@ public class ManejadorUsuarios {
         this.usuariosBD = usuariosBD;
     }
 
-    public boolean ParaRegistroOlogin(String comando, UnCliente cliente) throws IOException {
-        String usuario = cliente.entrada.readUTF();
-        String contra = cliente.entrada.readUTF();
+    public boolean procesarAutenticacion(String comando, String usuario, String contra, UnCliente cliente) throws IOException {
         boolean exito = false;
 
         if (comando.equalsIgnoreCase("/register")) {
@@ -36,7 +34,6 @@ public class ManejadorUsuarios {
             }
 
             synchronized (ServidorMulti.clientes) {
-
                 if (ServidorMulti.clientes.containsKey(usuario)) {
                     cliente.salida.writeUTF("Error: El usuario '" + usuario + "' ya esta en linea.");
                     return false;
@@ -55,6 +52,7 @@ public class ManejadorUsuarios {
 
         return exito;
     }
+
 
     public void cerrarSesion(UnCliente cliente) {
         synchronized (ServidorMulti.clientes) {
