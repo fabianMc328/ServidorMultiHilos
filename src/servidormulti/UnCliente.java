@@ -14,27 +14,26 @@ public class UnCliente implements Runnable {
     private final ManejadorUsuarios manejadorUsuarios;
     private final ManejadorMensajes manejadorMensajes;
     private final ManejadorGrupos manejadorGrupos;
-
+    private final EstadoServidor estado;
     private String oponenteEnFoco = null;
-
-
     private String nombreUsuario = null;
     private boolean registrado = false;
-
     private int idGrupoActual = Constantes.ID_GRUPO_TODOS;
     private String nombreGrupoActual = Constantes.NOMBRE_GRUPO_TODOS;
 
 
-    public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes, ManejadorGrupos manejadorGrupos) throws IOException {
+
+    public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes, ManejadorGrupos manejadorGrupos, EstadoServidor estado) throws IOException { // Recibe el estado
         this.clienteId = clienteId;
         this.salida = new DataOutputStream(socket.getOutputStream());
         this.entrada = new DataInputStream(socket.getInputStream());
         this.manejadorUsuarios = manejadorUsuarios;
         this.manejadorMensajes = manejadorMensajes;
         this.manejadorGrupos = manejadorGrupos;
-
-        ServidorMulti.contadoresDeMensajes.put(clienteId, 0);
+        this.estado = estado;
+        estado.contadoresDeMensajes.put(clienteId, 0);
     }
+
 
     @Override
     public void run() {
@@ -63,9 +62,7 @@ public class UnCliente implements Runnable {
         }
     }
 
-
     private void gestionarAutenticacion(String mensaje) throws IOException {
-
         String usuario = this.entrada.readUTF();
         String contra = this.entrada.readUTF();
 
@@ -73,8 +70,7 @@ public class UnCliente implements Runnable {
 
         if (exito) {
             this.registrado = true;
-            ServidorMulti.contadoresDeMensajes.remove(this.clienteId);
-
+            estado.contadoresDeMensajes.remove(this.clienteId); //
             String grupoAUnirse = Constantes.NOMBRE_GRUPO_TODOS;
             if (mensaje.equalsIgnoreCase("/login")) {
                 manejadorGrupos.cambiarGrupo(grupoAUnirse, this, false);
@@ -84,10 +80,10 @@ public class UnCliente implements Runnable {
         }
     }
 
-
     private void gestionarMensajesDeInvitado(String mensaje) throws IOException {
-        int contador = ServidorMulti.contadoresDeMensajes.get(clienteId) + 1;
-        ServidorMulti.contadoresDeMensajes.put(clienteId, contador);
+        int contador = estado.contadoresDeMensajes.get(clienteId) + 1;
+        estado.contadoresDeMensajes.put(clienteId, contador);
+
 
         if (contador > Constantes.LIMITE_MENSAJES_INVITADO) {
             salida.writeUTF("Has enviado " + Constantes.LIMITE_MENSAJES_INVITADO + " mensajes. Por favor, regístrate usando [/register] o [/login]");
@@ -105,11 +101,12 @@ public class UnCliente implements Runnable {
         String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
 
 
-        if (nombreUsuario != null && ServidorMulti.partidasActivas.containsKey(nombreUsuarioLimpio)) {
-            Set<String> oponentes = new java.util.HashSet<>(ServidorMulti.partidasActivas.get(nombreUsuarioLimpio));
+        if (nombreUsuario != null && estado.partidasActivas.containsKey(nombreUsuarioLimpio)) {
+            Set<String> oponentes = new java.util.HashSet<>(estado.partidasActivas.get(nombreUsuarioLimpio));
+
 
             for (String oponente : oponentes) {
-                UnCliente clienteOponente = ServidorMulti.clientes.get(oponente);
+                UnCliente clienteOponente = estado.getCliente(oponente);
 
                 if (clienteOponente != null) {
                     try {
@@ -135,11 +132,12 @@ public class UnCliente implements Runnable {
         }
 
         if (nombreUsuario != null) {
-            ServidorMulti.clientes.remove(nombreUsuario);
+            estado.removerCliente(nombreUsuario);
         } else {
-            ServidorMulti.clientes.remove(clienteId);
+            estado.removerCliente(clienteId);
         }
-        ServidorMulti.contadoresDeMensajes.remove(clienteId);
+        estado.contadoresDeMensajes.remove(clienteId);
+
     }
 
     public void resetearEstadoAInvitado() {
@@ -150,6 +148,8 @@ public class UnCliente implements Runnable {
         this.oponenteEnFoco = null;
     }
 
+
+
     public String getClienteId() { return clienteId; }
     public String getNombreUsuario() { return nombreUsuario; }
     public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
@@ -157,13 +157,10 @@ public class UnCliente implements Runnable {
     public int getIdGrupoActual() { return idGrupoActual; }
     public String getNombreGrupoActual() { return nombreGrupoActual; }
 
-
-
     public void setGrupoActual(int idGrupo, String nombreGrupo) {
         this.idGrupoActual = idGrupo;
         this.nombreGrupoActual = nombreGrupo;
     }
-
 
     public String getOponenteEnFoco() {
         return oponenteEnFoco;
@@ -171,8 +168,6 @@ public class UnCliente implements Runnable {
     public void setOponenteEnFoco(String oponenteEnFoco) {
         this.oponenteEnFoco = oponenteEnFoco;
     }
-
-
 
     public String getOponenteEnJuego() {
         return oponenteEnFoco;
