@@ -2,16 +2,17 @@ package servidormulti;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
+
 
 public class ManejadorGrupos {
     private final GruposBD gruposBD;
-    private final Map<String, UnCliente> clientes;
+    private final EstadoServidor estado;
 
-    public ManejadorGrupos(GruposBD gruposBD, Map<String, UnCliente> clientes) {
+    public ManejadorGrupos(GruposBD gruposBD, EstadoServidor estado) {
         this.gruposBD = gruposBD;
-        this.clientes = clientes;
+        this.estado = estado;
     }
+
 
     public boolean procesarComandoGrupo(String mensaje, UnCliente remitente) throws IOException {
         String[] partes = mensaje.split(" ", 2);
@@ -58,7 +59,6 @@ public class ManejadorGrupos {
     }
 
     private void crearGrupo(String nombreGrupo, UnCliente remitente) throws IOException {
-
         if (nombreGrupo.equalsIgnoreCase(Constantes.NOMBRE_GRUPO_TODOS)) {
             remitente.salida.writeUTF("No puedes crear un grupo llamado 'todos'.");
             return;
@@ -74,7 +74,6 @@ public class ManejadorGrupos {
     }
 
     private void borrarGrupo(String nombreGrupo, UnCliente remitente) throws IOException {
-
         if (nombreGrupo.equalsIgnoreCase(Constantes.NOMBRE_GRUPO_TODOS)) {
             remitente.salida.writeUTF("No puedes borrar el grupo 'todos'.");
             return;
@@ -84,11 +83,9 @@ public class ManejadorGrupos {
 
         if (idGrupoBorrado != -1) {
             remitente.salida.writeUTF("Grupo '" + nombreGrupo + "' borrado.");
-
-            for (UnCliente cliente : clientes.values()) {
+            for (UnCliente cliente : estado.clientes.values()) {
                 if (cliente.getIdGrupoActual() == idGrupoBorrado) {
                     cliente.salida.writeUTF("El grupo '" + nombreGrupo + "' ha sido borrado por su creador.");
-
                     cambiarGrupo(Constantes.NOMBRE_GRUPO_TODOS, cliente, true);
                 }
             }
@@ -98,7 +95,6 @@ public class ManejadorGrupos {
     }
 
     private void abandonarGrupo(UnCliente remitente) throws IOException {
-
         if (remitente.getIdGrupoActual() == Constantes.ID_GRUPO_TODOS) { // 1 es 'todos'
             remitente.salida.writeUTF("No puedes abandonar el grupo 'todos'.");
             return;
@@ -108,7 +104,6 @@ public class ManejadorGrupos {
         gruposBD.salirDeGrupo(remitente.getNombreUsuario(), remitente.getIdGrupoActual());
 
         remitente.salida.writeUTF("Has abandonado el grupo '" + nombreGrupoAnterior + "'.");
-
         cambiarGrupo(Constantes.NOMBRE_GRUPO_TODOS, remitente, false);
     }
 
