@@ -12,11 +12,15 @@ public class ManejadorMensajes {
     private final GruposBD gruposBD;
     private final ManejadorGrupos manejadorGrupos;
     private final ManejadorUsuarios manejadorUsuarios;
-
-
     private final EstadoServidor estado;
+    private final ProcesadorComandos procesadorComandos;
+    private final GeneradorAyuda generadorAyuda;
 
-    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos, ManejadorUsuarios manejadorUsuarios, ManejadorInvitaciones manejadorInvitaciones, EstadoServidor estado) { // Recibe el estado
+    public ManejadorMensajes(
+            BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos,
+            ManejadorUsuarios manejadorUsuarios, ManejadorInvitaciones manejadorInvitaciones,
+            EstadoServidor estado, GeneradorAyuda generadorAyuda) {
+
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
         this.rankingBD = rankingBD;
@@ -25,31 +29,49 @@ public class ManejadorMensajes {
         this.manejadorGrupos = manejadorGrupos;
         this.manejadorUsuarios = manejadorUsuarios;
         this.estado = estado;
+        this.generadorAyuda = generadorAyuda; // 3. Lo guardamos
+
+        this.procesadorComandos = new ProcesadorComandos(
+                manejadorUsuarios,
+                manejadorGrupos,
+                rankingBD,
+                generadorAyuda
+        );
     }
+
 
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario() != null ? remitente.getNombreUsuario() : "Invitado-" + remitente.getClienteId();
 
-        if (mensaje.equalsIgnoreCase("/cerrar-sesion")) {
+        if (mensaje.startsWith("@")) {
             if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("No puedes cerrar sesion si no has iniciado sesion.");
-                enviarListaDeComandos(remitente);
+                remitente.salida.writeUTF("Debes iniciar sesion para enviar mensajes privados.");
+                generadorAyuda.enviarListaDeComandos(remitente);
                 return;
             }
-
-            manejadorGrupos.actualizarEstadoLectura(remitente);
-            manejadorUsuarios.cerrarSesion(remitente);
-
-            remitente.salida.writeUTF("Sesion cerrada correctamente. Has vuelto a ser un Invitado.");
-            enviarListaDeComandos(remitente);
+            procesarMensajePrivado(mensaje, remitente, nombreRemitente);
             return;
         }
+
+        if (mensaje.startsWith("/")) {
+            boolean comandoEjecutado = procesadorComandos.ejecutar(mensaje, remitente);
+            if (!comandoEjecutado) {
+                procesarComandosViejos(mensaje, remitente, nombreRemitente);
+            }
+            return;
+        }
+
+        procesarMensajeGrupo(mensaje, remitente, nombreRemitente);
+    }
+
+
+    private void procesarComandosViejos(String mensaje, UnCliente remitente, String nombreRemitente) throws IOException {
 
         if (mensaje.startsWith("/invitar ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
-                enviarListaDeComandos(remitente);
+                generadorAyuda.enviarListaDeComandos(remitente);
                 return;
             }
             String invitado = mensaje.substring(9).trim();
@@ -59,7 +81,7 @@ public class ManejadorMensajes {
         if (mensaje.startsWith("/aceptar ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
-                enviarListaDeComandos(remitente);
+                generadorAyuda.enviarListaDeComandos(remitente);
                 return;
             }
             String invitador = mensaje.substring(9).trim();
@@ -69,27 +91,18 @@ public class ManejadorMensajes {
         if (mensaje.startsWith("/rechazar ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
-                enviarListaDeComandos(remitente);
+                generadorAyuda.enviarListaDeComandos(remitente);
                 return;
             }
             String invitador = mensaje.substring(10).trim();
             manejadorInvitaciones.rechazarInvitacion(nombreRemitente, invitador);
             return;
         }
-        if (mensaje.equalsIgnoreCase("/ranking")) {
-            if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
-                enviarListaDeComandos(remitente);
-                return;
-            }
-            String ranking = rankingBD.getRankingGeneral();
-            remitente.salida.writeUTF(ranking);
-            return;
-        }
+
         if (mensaje.startsWith("/h2h ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
-                enviarListaDeComandos(remitente);
+                generadorAyuda.enviarListaDeComandos(remitente);
                 return;
             }
             String oponente = mensaje.substring(5).trim();
@@ -136,7 +149,7 @@ public class ManejadorMensajes {
         if (mensaje.startsWith("/bloquear ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
-                enviarListaDeComandos(remitente);
+                generadorAyuda.enviarListaDeComandos(remitente);
                 return;
             }
             bloquearUsuario(mensaje, remitente);
@@ -144,75 +157,22 @@ public class ManejadorMensajes {
         } else if (mensaje.startsWith("/desbloquear ")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para usar este comando.");
-                enviarListaDeComandos(remitente);
+                generadorAyuda.enviarListaDeComandos(remitente);
                 return;
             }
             desbloquearUsuario(mensaje, remitente);
             return;
         }
 
-        if (mensaje.startsWith("@")) {
-            if (remitente.getNombreUsuario() == null) {
-                remitente.salida.writeUTF("Debes iniciar sesion para enviar mensajes privados.");
-                enviarListaDeComandos(remitente);
-                return;
-            }
-            procesarMensajePrivado(mensaje, remitente, nombreRemitente);
-            return;
+        boolean comandoManejado = manejadorGrupos.procesarComandoGrupo(mensaje, remitente);
+
+        if (!comandoManejado) {
+            remitente.salida.writeUTF("Comando desconocido: '" + mensaje.split(" ")[0] + "'");
+            generadorAyuda.enviarListaDeComandos(remitente);
         }
-
-        if (mensaje.startsWith("/")) {
-            boolean comandoManejado = manejadorGrupos.procesarComandoGrupo(mensaje, remitente);
-
-            if (!comandoManejado) {
-                remitente.salida.writeUTF("Comando desconocido: '" + mensaje.split(" ")[0] + "'");
-                enviarListaDeComandos(remitente);
-            }
-            return;
-        }
-
-        procesarMensajeGrupo(mensaje, remitente, nombreRemitente);
     }
 
-    private void enviarListaDeComandos(UnCliente remitente) throws IOException {
-        boolean logueado = (remitente.getNombreUsuario() != null);
-        StringBuilder sb = new StringBuilder("--- Lista de Comandos Disponibles ---\n");
 
-        if (logueado) {
-            sb.append("\n== General ==\n");
-            sb.append("@<usuario> <mensaje>   - Enviar mensaje privado.\n");
-            sb.append("/bloquear <usuario>     - Bloquear a un usuario.\n");
-            sb.append("/desbloquear <usuario>  - Desbloquear a un usuario.\n");
-            sb.append("/cerrar-sesion          - Cerrar tu sesion actual.\n");
-
-            sb.append("\n== Grupos ==\n");
-            sb.append("/lista-grupos           - Ver todos los grupos.\n");
-            sb.append("/crear-grupo <nombre>   - Crear un nuevo grupo.\n");
-            sb.append("/unirse-grupo <nombre>  - Unirse a un grupo.\n");
-            sb.append("/abandonar-grupo      - Salir de tu grupo actual y volver a 'todos'.\n");
-            sb.append("/borrar-grupo <nombre>  - Borrar un grupo (solo creador).\n");
-
-            sb.append("\n== Juego de Gato ==\n");
-            sb.append("/invitar <usuario>      - Invitar a jugar.\n");
-            sb.append("/aceptar <usuario>      - Aceptar una invitación.\n");
-            sb.append("/rechazar <usuario>     - Rechazar una invitacion.\n");
-            sb.append("/juego-lista            - Muestra tus partidas activas.\n"); // NUEVO
-            sb.append("/juego-focus <oponente> - Enfoca una partida para enviar comandos /gato.\n"); // NUEVO
-            sb.append("/gato <fila> <col>    - (En partida) Hacer un movimiento (ej: /gato 0 1).\n");
-
-            sb.append("\n== Ranking ==\n");
-            sb.append("/ranking                - Ver el top 20 del ranking de Gato.\n");
-            sb.append("/h2h <usuario>          - Ver tu historial contra otro jugador.\n");
-
-        } else {
-            // Comandos para invitados (no logueados)
-            sb.append("/login                  - Iniciar sesion.\n");
-            sb.append("/register               - Registrar un nuevo usuario.\n");
-            sb.append("/lista-grupos           - Ver todos los grupos.\n");
-        }
-
-        remitente.salida.writeUTF(sb.toString());
-    }
 
     private void bloquearUsuario(String mensaje, UnCliente remitente) throws IOException {
         String aBloquear = mensaje.substring(10).trim();
@@ -254,8 +214,8 @@ public class ManejadorMensajes {
                 remitente.salida.writeUTF("No puedes enviarte mensajes privados a ti mismo.");
                 continue;
             }
-            UnCliente clienteDestino = estado.getCliente(nombreLimpio);
 
+            UnCliente clienteDestino = estado.getCliente(nombreLimpio);
 
             if (clienteDestino != null) {
                 boolean tuBloqueaste = bloqueosBD.estaBloqueado(nombreRemitente, nombreLimpio);
@@ -292,7 +252,6 @@ public class ManejadorMensajes {
 
         for (UnCliente clienteDestino : estado.clientes.values()) {
 
-
             if (clienteDestino == remitente) {
                 continue;
             }
@@ -322,8 +281,7 @@ public class ManejadorMensajes {
 
     private void listarPartidas(UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario();
-        Set<String> oponentes = estado.partidasActivas.get(nombreRemitente); // Usa 'estado'
-
+        Set<String> oponentes = estado.partidasActivas.get(nombreRemitente);
 
         if (oponentes == null || oponentes.isEmpty()) {
             remitente.salida.writeUTF("No tienes ninguna partida activa.");
@@ -334,8 +292,8 @@ public class ManejadorMensajes {
         String focoActual = remitente.getOponenteEnFoco();
 
         for (String oponente : oponentes) {
-            String JuegoId = crearJuegoId(nombreRemitente, oponente);
-            TableroGato tablero = estado.tablerosPartidas.get(JuegoId);
+            String gameId = crearGameId(nombreRemitente, oponente);
+            TableroGato tablero = estado.tablerosPartidas.get(gameId);
 
             if (tablero == null) continue;
 
@@ -363,7 +321,8 @@ public class ManejadorMensajes {
             remitente.salida.writeUTF("No puedes jugar contra ti mismo.");
             return;
         }
-        Set<String> oponentes = estado.partidasActivas.get(nombreRemitente); // Usa 'estado'
+
+        Set<String> oponentes = estado.partidasActivas.get(nombreRemitente);
 
         if (oponentes == null || !oponentes.contains(oponente)) {
             remitente.salida.writeUTF("No tienes una partida activa con '" + oponente + "'.");
@@ -372,9 +331,10 @@ public class ManejadorMensajes {
 
         remitente.setOponenteEnFoco(oponente);
         remitente.salida.writeUTF("Ahora estás enfocado en la partida con '" + oponente + "'.");
-        String JuegoId = crearJuegoId(nombreRemitente, oponente);
-        TableroGato tablero = estado.tablerosPartidas.get(JuegoId);
 
+
+        String gameId = crearGameId(nombreRemitente, oponente);
+        TableroGato tablero = estado.tablerosPartidas.get(gameId);
 
         if (tablero != null) {
             remitente.salida.writeUTF(tablero.mostrarTablero());
@@ -387,7 +347,7 @@ public class ManejadorMensajes {
     }
 
 
-    private String crearJuegoId(String j1, String j2) {
+    private String crearGameId(String j1, String j2) {
         String[] nombres = {j1, j2};
         Arrays.sort(nombres);
         return nombres[0] + "-" + nombres[1];
@@ -402,14 +362,17 @@ public class ManejadorMensajes {
             remitente.salida.writeUTF("No estas enfocado en ninguna partida. Usa /juego-focus <oponente> para elegir una.");
             return;
         }
-        UnCliente clienteOponente = estado.getCliente(nombreOponente); // Usa 'estado'
+
+        UnCliente clienteOponente = estado.getCliente(nombreOponente);
+
         if (clienteOponente == null) {
             remitente.salida.writeUTF("Tu oponente '" + nombreOponente + "' ya no está conectado. La partida termino.");
             manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
             return;
         }
-        String gameId = crearJuegoId(nombreRemitente, nombreOponente);
-        TableroGato tablero = estado.tablerosPartidas.get(gameId); // Usa 'estado'
+
+        String gameId = crearGameId(nombreRemitente, nombreOponente);
+        TableroGato tablero = estado.tablerosPartidas.get(gameId);
 
         if (tablero == null || tablero.isTerminado()) {
             remitente.salida.writeUTF("No hay ninguna partida activa con '" + nombreOponente + "' o ya ha terminado.");

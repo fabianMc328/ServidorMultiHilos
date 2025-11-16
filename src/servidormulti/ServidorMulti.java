@@ -3,10 +3,11 @@ package servidormulti;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-// Quita los imports de Map, Set, y ConcurrentHashMap que ya no se usan aquí
 
 public class ServidorMulti {
+
     private static final EstadoServidor estado = new EstadoServidor();
+
 
     public static void main(String[] args) throws IOException {
 
@@ -15,6 +16,7 @@ public class ServidorMulti {
         BloqueosBD bloqueosBD = new BloqueosBD();
         RankingBD rankingBD = new RankingBD();
         GruposBD gruposBD = new GruposBD();
+        GeneradorAyuda generadorAyuda = new GeneradorAyuda();
 
 
 
@@ -30,7 +32,8 @@ public class ServidorMulti {
                 manejadorGrupos,
                 manejadorUsuarios,
                 manejadorInvitaciones,
-                estado
+                estado,
+                generadorAyuda
         );
 
 
@@ -41,11 +44,8 @@ public class ServidorMulti {
                 Socket s = servidorSocket.accept();
                 String clienteId = String.valueOf(contadorId++);
 
-
-
                 UnCliente unCliente = new UnCliente(s, clienteId, manejadorUsuarios, manejadorMensajes, manejadorGrupos, estado);
                 estado.agregarCliente(clienteId, unCliente);
-
 
                 new Thread(unCliente).start();
                 System.out.println("Se conectó un nuevo cliente con ID temporal: " + clienteId);
