@@ -1,5 +1,7 @@
 package servidormulti;
 
+import servidormulti.Juego.TableroGato;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;

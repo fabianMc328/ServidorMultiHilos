@@ -1,4 +1,9 @@
-package servidormulti;
+package servidormulti.Servicios;
+
+import servidormulti.BD.BloqueosBD;
+import servidormulti.EstadoServidor;
+import servidormulti.Juego.TableroGato;
+import servidormulti.UnCliente;
 
 import java.io.IOException;
 import java.util.Arrays;

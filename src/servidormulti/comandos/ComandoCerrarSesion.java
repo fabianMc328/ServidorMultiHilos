@@ -1,4 +1,9 @@
-package servidormulti;
+package servidormulti.comandos;
+
+import servidormulti.Servicios.GeneradorAyuda;
+import servidormulti.Servicios.ManejadorGrupos;
+import servidormulti.Servicios.ManejadorUsuarios;
+import servidormulti.UnCliente;
 
 import java.io.IOException;
 public class ComandoCerrarSesion implements Comando {

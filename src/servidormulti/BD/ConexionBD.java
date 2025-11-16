@@ -1,4 +1,4 @@
-package servidormulti;
+package servidormulti.BD;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

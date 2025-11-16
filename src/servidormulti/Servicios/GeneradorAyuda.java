@@ -1,4 +1,6 @@
-package servidormulti;
+package servidormulti.Servicios;
+
+import servidormulti.UnCliente;
 
 import java.io.IOException;
 

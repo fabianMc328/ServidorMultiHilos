@@ -1,4 +1,8 @@
-package servidormulti;
+package servidormulti.Servicios;
+
+import servidormulti.BD.UsuariosBD;
+import servidormulti.EstadoServidor;
+import servidormulti.UnCliente;
 
 import java.io.IOException;
 

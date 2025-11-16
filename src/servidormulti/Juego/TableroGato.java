@@ -1,4 +1,4 @@
-package servidormulti;
+package servidormulti.Juego;
 
 public class TableroGato {
     private final char[][] tablero;

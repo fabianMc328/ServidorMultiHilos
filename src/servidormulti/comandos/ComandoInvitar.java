@@ -1,13 +1,17 @@
-package servidormulti;
+package servidormulti.comandos;
+
+import servidormulti.Servicios.GeneradorAyuda;
+import servidormulti.Servicios.ManejadorInvitaciones;
+import servidormulti.UnCliente;
 
 import java.io.IOException;
 
-public class ComandoRechazar implements Comando {
+public class ComandoInvitar implements Comando {
 
     private final ManejadorInvitaciones manejadorInvitaciones;
     private final GeneradorAyuda generadorAyuda;
 
-    public ComandoRechazar(ManejadorInvitaciones manejadorInvitaciones, GeneradorAyuda generadorAyuda) {
+    public ComandoInvitar(ManejadorInvitaciones manejadorInvitaciones, GeneradorAyuda generadorAyuda) {
         this.manejadorInvitaciones = manejadorInvitaciones;
         this.generadorAyuda = generadorAyuda;
     }
@@ -20,12 +24,12 @@ public class ComandoRechazar implements Comando {
             return;
         }
         if (argumentos.length == 0) {
-            remitente.salida.writeUTF("Uso: /rechazar <usuario>");
+            remitente.salida.writeUTF("Uso: /invitar <usuario>");
             return;
         }
 
-        String invitador = argumentos[0];
+        String invitado = argumentos[0];
         String nombreRemitente = remitente.getNombreUsuario();
-        manejadorInvitaciones.rechazarInvitacion(nombreRemitente, invitador);
+        manejadorInvitaciones.enviarInvitacion(nombreRemitente, invitado);
     }
 }

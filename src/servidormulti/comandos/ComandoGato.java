@@ -1,4 +1,9 @@
-package servidormulti;
+package servidormulti.comandos;
+
+import servidormulti.*;
+import servidormulti.BD.RankingBD;
+import servidormulti.Juego.TableroGato;
+import servidormulti.Servicios.ManejadorInvitaciones;
 
 import java.io.IOException;
 import java.util.Arrays;

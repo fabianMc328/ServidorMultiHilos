@@ -1,4 +1,7 @@
-package servidormulti;
+package servidormulti.comandos;
+
+import servidormulti.BD.RankingBD;
+import servidormulti.UnCliente;
 
 import java.io.IOException;
 
