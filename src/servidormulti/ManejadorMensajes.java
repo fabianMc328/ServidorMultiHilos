@@ -1,9 +1,8 @@
 package servidormulti;
 
 import java.io.IOException;
-import java.util.Arrays; // NUEVO
-import java.util.Set; // NUEVO
-import static servidormulti.ServidorMulti.clientes;
+import java.util.Arrays;
+import java.util.Set;
 
 public class ManejadorMensajes {
     private final BloqueosBD bloqueosBD;
@@ -14,7 +13,10 @@ public class ManejadorMensajes {
     private final ManejadorGrupos manejadorGrupos;
     private final ManejadorUsuarios manejadorUsuarios;
 
-    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos, ManejadorUsuarios manejadorUsuarios, ManejadorInvitaciones manejadorInvitaciones) {
+
+    private final EstadoServidor estado;
+
+    public ManejadorMensajes(BloqueosBD bloqueosBD, UsuariosBD usuariosBD, RankingBD rankingBD, GruposBD gruposBD, ManejadorGrupos manejadorGrupos, ManejadorUsuarios manejadorUsuarios, ManejadorInvitaciones manejadorInvitaciones, EstadoServidor estado) { // Recibe el estado
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
         this.rankingBD = rankingBD;
@@ -22,7 +24,9 @@ public class ManejadorMensajes {
         this.gruposBD = gruposBD;
         this.manejadorGrupos = manejadorGrupos;
         this.manejadorUsuarios = manejadorUsuarios;
+        this.estado = estado;
     }
+
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario() != null ? remitente.getNombreUsuario() : "Invitado-" + remitente.getClienteId();
@@ -250,8 +254,8 @@ public class ManejadorMensajes {
                 remitente.salida.writeUTF("No puedes enviarte mensajes privados a ti mismo.");
                 continue;
             }
+            UnCliente clienteDestino = estado.getCliente(nombreLimpio);
 
-            UnCliente clienteDestino = clientes.get(nombreLimpio);
 
             if (clienteDestino != null) {
                 boolean tuBloqueaste = bloqueosBD.estaBloqueado(nombreRemitente, nombreLimpio);
@@ -286,7 +290,8 @@ public class ManejadorMensajes {
                 nombreRemitente,
                 mensaje);
 
-        for (UnCliente clienteDestino : clientes.values()) {
+        for (UnCliente clienteDestino : estado.clientes.values()) {
+
 
             if (clienteDestino == remitente) {
                 continue;
@@ -317,7 +322,8 @@ public class ManejadorMensajes {
 
     private void listarPartidas(UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario();
-        Set<String> oponentes = ServidorMulti.partidasActivas.get(nombreRemitente);
+        Set<String> oponentes = estado.partidasActivas.get(nombreRemitente); // Usa 'estado'
+
 
         if (oponentes == null || oponentes.isEmpty()) {
             remitente.salida.writeUTF("No tienes ninguna partida activa.");
@@ -328,10 +334,10 @@ public class ManejadorMensajes {
         String focoActual = remitente.getOponenteEnFoco();
 
         for (String oponente : oponentes) {
-            String gameId = crearGameId(nombreRemitente, oponente);
-            TableroGato tablero = ServidorMulti.tablerosPartidas.get(gameId);
+            String JuegoId = crearJuegoId(nombreRemitente, oponente);
+            TableroGato tablero = estado.tablerosPartidas.get(JuegoId);
 
-            if (tablero == null) continue; // Partida fantasma, se limpiará sola
+            if (tablero == null) continue;
 
             sb.append("- Vs: ").append(oponente);
 
@@ -357,8 +363,8 @@ public class ManejadorMensajes {
             remitente.salida.writeUTF("No puedes jugar contra ti mismo.");
             return;
         }
+        Set<String> oponentes = estado.partidasActivas.get(nombreRemitente); // Usa 'estado'
 
-        Set<String> oponentes = ServidorMulti.partidasActivas.get(nombreRemitente);
         if (oponentes == null || !oponentes.contains(oponente)) {
             remitente.salida.writeUTF("No tienes una partida activa con '" + oponente + "'.");
             return;
@@ -366,10 +372,10 @@ public class ManejadorMensajes {
 
         remitente.setOponenteEnFoco(oponente);
         remitente.salida.writeUTF("Ahora estás enfocado en la partida con '" + oponente + "'.");
+        String JuegoId = crearJuegoId(nombreRemitente, oponente);
+        TableroGato tablero = estado.tablerosPartidas.get(JuegoId);
 
 
-        String gameId = crearGameId(nombreRemitente, oponente);
-        TableroGato tablero = ServidorMulti.tablerosPartidas.get(gameId);
         if (tablero != null) {
             remitente.salida.writeUTF(tablero.mostrarTablero());
             if (tablero.getTurno().equals(nombreRemitente)) {
@@ -381,7 +387,7 @@ public class ManejadorMensajes {
     }
 
 
-    private String crearGameId(String j1, String j2) {
+    private String crearJuegoId(String j1, String j2) {
         String[] nombres = {j1, j2};
         Arrays.sort(nombres);
         return nombres[0] + "-" + nombres[1];
@@ -396,16 +402,14 @@ public class ManejadorMensajes {
             remitente.salida.writeUTF("No estas enfocado en ninguna partida. Usa /juego-focus <oponente> para elegir una.");
             return;
         }
-
-        UnCliente clienteOponente = ServidorMulti.clientes.get(nombreOponente);
+        UnCliente clienteOponente = estado.getCliente(nombreOponente); // Usa 'estado'
         if (clienteOponente == null) {
             remitente.salida.writeUTF("Tu oponente '" + nombreOponente + "' ya no está conectado. La partida termino.");
             manejadorInvitaciones.finalizarPartida(nombreRemitente, nombreOponente);
             return;
         }
-
-        String gameId = crearGameId(nombreRemitente, nombreOponente);
-        TableroGato tablero = ServidorMulti.tablerosPartidas.get(gameId);
+        String gameId = crearJuegoId(nombreRemitente, nombreOponente);
+        TableroGato tablero = estado.tablerosPartidas.get(gameId); // Usa 'estado'
 
         if (tablero == null || tablero.isTerminado()) {
             remitente.salida.writeUTF("No hay ninguna partida activa con '" + nombreOponente + "' o ya ha terminado.");
