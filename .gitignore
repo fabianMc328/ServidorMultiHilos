@@ -28,3 +28,6 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+
+# Ignorar la base de datos local de SQLite
+chat_base_de_datos.db
