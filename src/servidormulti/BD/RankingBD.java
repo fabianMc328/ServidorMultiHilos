@@ -6,15 +6,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class RankingBD {
+
     private void actualizarPuntaje(String usuario, int puntosGanados, int esVictoria, int esEmpate, int esDerrota) {
+
         String sql = "INSERT INTO ranking_gato (usuario, puntos, partidas_jugadas, victorias, empates, derrotas) " +
                 "VALUES (?, ?, 1, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE " +
-                "puntos = puntos + ?, " +
+                "ON CONFLICT(usuario) DO UPDATE SET " +
+                "puntos = puntos + excluded.puntos, " +
                 "partidas_jugadas = partidas_jugadas + 1, " +
-                "victorias = victorias + ?, " +
-                "empates = empates + ?, " +
-                "derrotas = derrotas + ?";
+                "victorias = victorias + excluded.victorias, " +
+                "empates = empates + excluded.empates, " +
+                "derrotas = derrotas + excluded.derrotas";
 
         try (Connection conn = ConexionBD.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -24,10 +26,7 @@ public class RankingBD {
             ps.setInt(4, esEmpate);
             ps.setInt(5, esDerrota);
 
-            ps.setInt(6, puntosGanados);
-            ps.setInt(7, esVictoria);
-            ps.setInt(8, esEmpate);
-            ps.setInt(9, esDerrota);
+
 
             ps.executeUpdate();
 
@@ -36,31 +35,40 @@ public class RankingBD {
             e.printStackTrace();
         }
     }
+
     private void actualizarH2H(String j1, String j2, String resultadoJ1) {
         String jugador1 = (j1.compareTo(j2) < 0) ? j1 : j2;
         String jugador2 = (j1.compareTo(j2) < 0) ? j2 : j1;
 
         String campoAActualizar;
+        int v1_inicial = 0;
+        int v2_inicial = 0;
+        int empate_inicial = 0;
+
         if (resultadoJ1.equals("empate")) {
             campoAActualizar = "empates = empates + 1";
+            empate_inicial = 1;
         } else if ((resultadoJ1.equals("victoria") && j1.equals(jugador1)) || (resultadoJ1.equals("derrota") && j2.equals(jugador1))) {
             campoAActualizar = "victorias_jugador1 = victorias_jugador1 + 1";
+            v1_inicial = 1;
         } else {
             campoAActualizar = "victorias_jugador2 = victorias_jugador2 + 1";
+            v2_inicial = 1;
         }
 
         String sql = "INSERT INTO h2h_gato (jugador1, jugador2, victorias_jugador1, victorias_jugador2, empates) " +
                 "VALUES (?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE " + campoAActualizar;
+                "ON CONFLICT(jugador1, jugador2) DO UPDATE SET " +
+                campoAActualizar;
 
         try (Connection conn = ConexionBD.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, jugador1);
             ps.setString(2, jugador2);
-            ps.setInt(3, (campoAActualizar.contains("victorias_jugador1")) ? 1 : 0);
-            ps.setInt(4, (campoAActualizar.contains("victorias_jugador2")) ? 1 : 0);
-            ps.setInt(5, (campoAActualizar.contains("empates")) ? 1 : 0);
+            ps.setInt(3, v1_inicial);
+            ps.setInt(4, v2_inicial);
+            ps.setInt(5, empate_inicial);
 
             ps.executeUpdate();
 
@@ -72,15 +80,15 @@ public class RankingBD {
 
     public void actualizarResultados(String jugadorA, String jugadorB, boolean empate) {
         if (empate) {
-            // Empate: 1 punto para cada uno
+
             actualizarPuntaje(jugadorA, 1, 0, 1, 0);
             actualizarPuntaje(jugadorB, 1, 0, 1, 0);
             actualizarH2H(jugadorA, jugadorB, "empate");
         } else {
+
             actualizarPuntaje(jugadorA, 2, 1, 0, 0);
             actualizarPuntaje(jugadorB, 0, 0, 0, 1);
             actualizarH2H(jugadorA, jugadorB, "victoria");
-
         }
     }
 
