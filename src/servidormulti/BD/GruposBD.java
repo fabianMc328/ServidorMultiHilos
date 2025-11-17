@@ -1,5 +1,7 @@
 package servidormulti.BD;
 
+import servidormulti.Constantes;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,13 +20,12 @@ public class GruposBD {
             ps.executeUpdate();
             return true;
         } catch (SQLException e) {
-            e.printStackTrace();
             return false;
         }
     }
 
     public int borrarGrupo(String nombreGrupo, String solicitante) {
-        if (nombreGrupo.equalsIgnoreCase("todos")) {
+        if (nombreGrupo.equalsIgnoreCase(Constantes.NOMBRE_GRUPO_TODOS)) {
             return -1;
         }
 
@@ -93,8 +94,9 @@ public class GruposBD {
             return "Error al obtener lista de grupos.";
         }
     }
+
     public void unirseAGrupo(String usuario, int idGrupo) {
-        String sql = "INSERT INTO membresias_grupo (id_usuario, id_grupo) VALUES (?, ?) ON DUPLICATE KEY UPDATE id_grupo=id_grupo";
+        String sql = "INSERT OR IGNORE INTO membresias_grupo (id_usuario, id_grupo) VALUES (?, ?)";
         try (Connection conn = ConexionBD.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario);
@@ -104,8 +106,9 @@ public class GruposBD {
             e.printStackTrace();
         }
     }
+
     public void salirDeGrupo(String usuario, int idGrupo) {
-        if (idGrupo == 1) return;
+        if (idGrupo == Constantes.ID_GRUPO_TODOS) return; // Usa Constante
 
         String sql = "DELETE FROM membresias_grupo WHERE id_usuario = ? AND id_grupo = ?";
         try (Connection conn = ConexionBD.getConnection();
@@ -138,22 +141,34 @@ public class GruposBD {
             return -1;
         }
     }
+
+
+
     public long getUltimoMensajeVisto(String usuario, int idGrupo) {
         String sql = "SELECT ultimo_mensaje_visto_id FROM estado_lectura WHERE id_usuario = ? AND id_grupo = ?";
+        boolean filaEncontrada = false;
+        long idVisto = 0;
+
         try (Connection conn = ConexionBD.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario);
             ps.setInt(2, idGrupo);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return rs.getLong("ultimo_mensaje_visto_id");
+                idVisto = rs.getLong("ultimo_mensaje_visto_id");
+                filaEncontrada = true;
             }
-            return 0;
         } catch (SQLException e) {
             e.printStackTrace();
-            return 0;
         }
+
+        if (!filaEncontrada) {
+            actualizarUltimoMensajeVisto(usuario, idGrupo, 0); // Esto creará la fila con '0'
+        }
+
+        return idVisto;
     }
+
 
     public List<String> getMensajesNuevos(int idGrupo, long ultimoMensajeVistoId, String usuario, String clienteId) {
         List<String> mensajes = new ArrayList<>();
@@ -186,17 +201,26 @@ public class GruposBD {
     }
 
     public void actualizarUltimoMensajeVisto(String usuario, int idGrupo, long ultimoMensajeId) {
-        if (ultimoMensajeId <= 0) return;
+        if (ultimoMensajeId <= 0) {
+            String sqlInit = "INSERT OR IGNORE INTO estado_lectura (id_usuario, id_grupo, ultimo_mensaje_visto_id) VALUES (?, ?, 0)";
+            try (Connection conn = ConexionBD.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sqlInit)) {
+                ps.setString(1, usuario);
+                ps.setInt(2, idGrupo);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return;
+        }
 
-        String sql = "INSERT INTO estado_lectura (id_usuario, id_grupo, ultimo_mensaje_visto_id) VALUES (?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE ultimo_mensaje_visto_id = ?";
+        String sql = "INSERT OR REPLACE INTO estado_lectura (id_usuario, id_grupo, ultimo_mensaje_visto_id) VALUES (?, ?, ?)";
 
         try (Connection conn = ConexionBD.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario);
             ps.setInt(2, idGrupo);
             ps.setLong(3, ultimoMensajeId);
-            ps.setLong(4, ultimoMensajeId);
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
