@@ -32,7 +32,9 @@ public class ConexionBD {
 
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(props.getProperty("db.url"));
-        config.setMaximumPoolSize(1);
+
+        config.setMaximumPoolSize(10);
+        config.addDataSourceProperty("journal_mode", "WAL");
 
         ds = new HikariDataSource(config);
 
@@ -49,7 +51,6 @@ public class ConexionBD {
     public static Connection getConnection() throws SQLException {
         return ds.getConnection();
     }
-
 
     private static void crearTablasSiNoExisten() throws SQLException {
 
@@ -112,7 +113,6 @@ public class ConexionBD {
                 "empates INTEGER DEFAULT 0," +
                 "PRIMARY KEY (jugador1, jugador2)" +
                 ");";
-
 
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {

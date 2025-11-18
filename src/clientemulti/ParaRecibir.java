@@ -29,17 +29,14 @@ public class ParaRecibir implements Runnable{
             while (true) {
                 String mensaje = entrada.readUTF();
 
-                // --- LÓGICA DE ESTADO DE LOGIN ---
-
-                // Escucha el mensaje de éxito del servidor
-                if (mensaje.startsWith("Sesión iniciada correctamente")) {
+                if (mensaje.startsWith("Sesion iniciada correctamente")) {
                     ParaMandar.estaLogueado = true;
                 }
-                // NUEVO: Escucha el mensaje de cierre de sesión
-                else if (mensaje.startsWith("Sesión cerrada correctamente")) {
+
+                else if (mensaje.startsWith("Sesion cerrada correctamente")) {
+
                     ParaMandar.estaLogueado = false;
                 }
-                // FIN NUEVO
 
                 salidaConsola.println(mensaje);
             }
