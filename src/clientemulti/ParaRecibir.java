@@ -1,4 +1,5 @@
 package clientemulti;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -6,7 +7,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
-public class ParaRecibir implements Runnable{
+public class ParaRecibir implements Runnable {
     final DataInputStream entrada;
     private final PrintStream salidaConsola;
 
@@ -31,17 +32,15 @@ public class ParaRecibir implements Runnable{
 
                 if (mensaje.startsWith("Sesion iniciada correctamente")) {
                     ParaMandar.estaLogueado = true;
-                }
-
-                else if (mensaje.startsWith("Sesion cerrada correctamente")) {
-
+                } else if (mensaje.startsWith("Sesion cerrada correctamente")) {
                     ParaMandar.estaLogueado = false;
                 }
 
                 salidaConsola.println(mensaje);
             }
         } catch (IOException ex) {
-            salidaConsola.println("Conexión cerrada o error: " + ex.getMessage());
+            salidaConsola.println("Se perdió la conexión con el servidor.");
+            System.exit(0);
         }
     }
 }
