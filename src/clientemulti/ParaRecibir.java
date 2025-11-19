@@ -28,20 +28,21 @@ public class ParaRecibir implements Runnable {
         try {
             while (true) {
                 String mensaje = entrada.readUTF();
-                String mensajeMin = mensaje.toLowerCase(); // Para comparar sin importar mayúsculas
+                String mensajeMin = mensaje.toLowerCase();
 
-                // --- ARREGLO ROBUSTO ---
-                // Usamos 'contains' en lugar de 'startsWith' para ser más flexibles
-                // y asegurarnos de que el cliente SIEMPRE se entere si entra o sale.
 
-                if (mensajeMin.contains("sesion iniciada") || mensajeMin.contains("sesión iniciada")) {
+
+                if (mensajeMin.contains("sesion iniciada") ||
+                        mensajeMin.contains("sesión iniciada") ||
+                        mensajeMin.contains("usuario registrado correctamente")) {
+
                     ParaMandar.estaLogueado = true;
                 }
-                else if (mensajeMin.contains("sesion cerrada") || mensajeMin.contains("sesión cerrada")) {
+                else if (mensajeMin.contains("sesion cerrada") ||
+                        mensajeMin.contains("sesión cerrada")) {
+
                     ParaMandar.estaLogueado = false;
                 }
-                // -----------------------
-
                 salidaConsola.println(mensaje);
             }
         } catch (IOException ex) {
