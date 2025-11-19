@@ -1,4 +1,4 @@
-package servidormulti.Servicios;
+package servidormulti.servicios;
 
 import servidormulti.UnCliente;
 

@@ -1,9 +1,9 @@
 package servidormulti.comandos;
 
-import servidormulti.Servicios.GeneradorAyuda;
-import servidormulti.BD.RankingBD;
+import servidormulti.servicios.GeneradorAyuda;
+import servidormulti.bd.RankingBD;
 import servidormulti.UnCliente;
-import servidormulti.BD.UsuariosBD;
+import servidormulti.bd.UsuariosBD;
 
 import java.io.IOException;
 

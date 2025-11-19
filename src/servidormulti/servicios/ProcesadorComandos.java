@@ -1,8 +1,8 @@
-package servidormulti.Servicios;
+package servidormulti.servicios;
 
-import servidormulti.BD.BloqueosBD;
-import servidormulti.BD.RankingBD;
-import servidormulti.BD.UsuariosBD;
+import servidormulti.bd.BloqueosBD;
+import servidormulti.bd.RankingBD;
+import servidormulti.bd.UsuariosBD;
 import servidormulti.EstadoServidor;
 import servidormulti.UnCliente;
 import servidormulti.comandos.*;

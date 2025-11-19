@@ -1,10 +1,10 @@
 package servidormulti;
 
-import servidormulti.BD.BloqueosBD;
-import servidormulti.BD.GruposBD;
-import servidormulti.BD.RankingBD;
-import servidormulti.BD.UsuariosBD;
-import servidormulti.Servicios.*;
+import servidormulti.bd.BloqueosBD;
+import servidormulti.bd.GruposBD;
+import servidormulti.bd.RankingBD;
+import servidormulti.bd.UsuariosBD;
+import servidormulti.servicios.*;
 
 import java.io.IOException;
 import java.net.ServerSocket;

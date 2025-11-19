@@ -1,6 +1,6 @@
-package servidormulti.Servicios;
+package servidormulti.servicios;
 
-import servidormulti.BD.GruposBD;
+import servidormulti.bd.GruposBD;
 import servidormulti.Constantes;
 import servidormulti.EstadoServidor;
 import servidormulti.UnCliente;

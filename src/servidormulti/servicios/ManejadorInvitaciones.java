@@ -1,6 +1,6 @@
-package servidormulti.Servicios;
+package servidormulti.servicios;
 
-import servidormulti.BD.BloqueosBD;
+import servidormulti.bd.BloqueosBD;
 import servidormulti.EstadoServidor;
 import servidormulti.Juego.TableroGato;
 import servidormulti.UnCliente;

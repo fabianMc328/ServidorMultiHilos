@@ -1,8 +1,8 @@
 package servidormulti.comandos;
 
-import servidormulti.Servicios.GeneradorAyuda;
-import servidormulti.Servicios.ManejadorGrupos;
-import servidormulti.Servicios.ManejadorUsuarios;
+import servidormulti.servicios.GeneradorAyuda;
+import servidormulti.servicios.ManejadorGrupos;
+import servidormulti.servicios.ManejadorUsuarios;
 import servidormulti.UnCliente;
 
 import java.io.IOException;

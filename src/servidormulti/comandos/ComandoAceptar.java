@@ -1,7 +1,7 @@
 package servidormulti.comandos;
 
-import servidormulti.Servicios.GeneradorAyuda;
-import servidormulti.Servicios.ManejadorInvitaciones;
+import servidormulti.servicios.GeneradorAyuda;
+import servidormulti.servicios.ManejadorInvitaciones;
 import servidormulti.UnCliente;
 
 import java.io.IOException;
