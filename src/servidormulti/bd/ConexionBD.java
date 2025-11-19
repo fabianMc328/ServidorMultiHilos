@@ -19,7 +19,7 @@ public class ConexionBD {
             if (input == null) throw new RuntimeException("Falta archivo db.properties");
             props.load(input);
         } catch (IOException ex) {
-            System.out.println("Error leyendo configuracion.");
+            System.out.println("Error leyendo configuracion de la base de datos.");
         }
 
         HikariConfig config = new HikariConfig();
@@ -33,7 +33,7 @@ public class ConexionBD {
             crearTablasSiNoExisten();
             System.out.println("Base de datos SQLite lista.");
         } catch (SQLException e) {
-            System.out.println("Error al iniciar la base de datos.");
+            System.out.println("Error critico al crear las tablas.");
         }
     }
 
@@ -61,7 +61,7 @@ public class ConexionBD {
         try (Connection conn = getConnection()) {
             if (conn != null && !conn.isClosed()) System.out.println("Conexion exitosa a SQLite.");
         } catch (SQLException e) {
-            System.out.println("Error de conexion.");
+            System.out.println("Error al conectar con la base de datos.");
         }
     }
 }

@@ -8,7 +8,7 @@ public class UsuariosBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ps.setString(2, contra); ps.setString(3, "noRegistrado"); ps.executeUpdate(); return true;
         } catch (SQLException e) {
-            System.out.println("Error en base de datos.");
+            System.out.println("Error al registrar usuario.");
             return false;
         }
     }
@@ -18,7 +18,7 @@ public class UsuariosBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ResultSet rs = ps.executeQuery(); return rs.next();
         } catch (SQLException e) {
-            System.out.println("Error en base de datos.");
+            System.out.println("Error al buscar usuario.");
             return false;
         }
     }
@@ -28,7 +28,7 @@ public class UsuariosBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ps.setString(2, contra); ResultSet rs = ps.executeQuery(); return rs.next();
         } catch (SQLException e) {
-            System.out.println("Error en base de datos.");
+            System.out.println("Error al verificar credenciales.");
             return false;
         }
     }

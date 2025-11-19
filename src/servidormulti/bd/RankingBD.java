@@ -7,7 +7,7 @@ public class RankingBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ps.setInt(2, puntos); ps.setInt(3, vic); ps.setInt(4, emp); ps.setInt(5, der); ps.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Error BD al actualizar ranking: " + e.getMessage());
+            System.out.println("Error al actualizar ranking.");
         }
     }
 
@@ -19,7 +19,7 @@ public class RankingBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, jug1); ps.setString(2, jug2); ps.setInt(3, v1); ps.setInt(4, v2); ps.setInt(5, em); ps.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Error BD al actualizar historial: " + e.getMessage());
+            System.out.println("Error al actualizar historial.");
         }
     }
 
@@ -44,19 +44,11 @@ public class RankingBD {
             ps.setString(1, jug1); ps.setString(2, jug2); ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 int v1 = rs.getInt("victorias_jugador1"); int v2 = rs.getInt("victorias_jugador2"); int em = rs.getInt("empates");
-                int victoriasJ1 = (j1.equals(jug1)) ? v1 : v2;
-                int victoriasJ2 = (j2.equals(jug1)) ? v1 : v2;
-                double total = victoriasJ1 + victoriasJ2 + em;
-
-                if (total == 0) return "No se han enfrentado (error de datos).";
-
-                double pct1 = (victoriasJ1 / total) * 100.0;
-                double pct2 = (victoriasJ2 / total) * 100.0;
-
-                return String.format("--- H2H: %s vs %s ---\nTotal Partidas: %d\n%s: %d victorias (%.1f%%)\n%s: %d victorias (%.1f%%)\nEmpates: %d",
-                        j1, j2, (int)total, j1, victoriasJ1, pct1, j2, victoriasJ2, pct2, em);
-
-
+                int vicJ1 = (j1.equals(jug1)) ? v1 : v2; int vicJ2 = (j2.equals(jug1)) ? v1 : v2;
+                double total = v1 + v2 + em;
+                if (total == 0) return "No se han enfrentado.";
+                double pct1 = (vicJ1 / total) * 100.0; double pct2 = (vicJ2 / total) * 100.0;
+                return String.format("--- H2H: %s vs %s ---\nTotal Partidas: %d\n%s: %d victorias (%.1f%%)\n%s: %d victorias (%.1f%%)\nEmpates: %d", j1, j2, (int)total, j1, vicJ1, pct1, j2, vicJ2, pct2, em);
             } return "Aún no se han enfrentado.";
         } catch (SQLException e) { return "Error al leer historial."; }
     }

@@ -1,5 +1,4 @@
 package servidormulti.bd;
-
 import servidormulti.Constantes;
 import java.sql.*;
 import java.util.ArrayList;
@@ -28,11 +27,10 @@ public class GruposBD {
                 }
             } return -1;
         } catch (SQLException e) {
-            System.out.println("Error en base de datos.");
+            System.out.println("Error al borrar grupo.");
             return -1;
         }
     }
-
 
     public int getGrupoId(String nombreGrupo) {
         String sql = "SELECT id_grupo FROM grupos WHERE nombre_grupo = ?";
@@ -48,14 +46,14 @@ public class GruposBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) sb.append("- ").append(rs.getString("nombre_grupo")).append("\n");
             return sb.toString();
-        } catch (SQLException e) { return "Error al leer grupos."; }
+        } catch (SQLException e) { return "Error al obtener lista de grupos."; }
     }
 
     public void unirseAGrupo(String usuario, int idGrupo) {
         String sql = "INSERT OR IGNORE INTO membresias_grupo (id_usuario, id_grupo) VALUES (?, ?)";
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ps.setInt(2, idGrupo); ps.executeUpdate();
-        } catch (SQLException e) { System.out.println("Error en base de datos."); }
+        } catch (SQLException e) { System.out.println("Error al unirse al grupo."); }
     }
 
     public void salirDeGrupo(String usuario, int idGrupo) {
@@ -63,7 +61,7 @@ public class GruposBD {
         String sql = "DELETE FROM membresias_grupo WHERE id_usuario = ? AND id_grupo = ?";
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ps.setInt(2, idGrupo); ps.executeUpdate();
-        } catch (SQLException e) { System.out.println("Error en base de datos."); }
+        } catch (SQLException e) { System.out.println("Error al salir del grupo."); }
     }
 
     public long guardarMensaje(int idGrupo, String remitente, String contenido) {
@@ -85,7 +83,7 @@ public class GruposBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ps.setInt(2, idGrupo); ResultSet rs = ps.executeQuery();
             if (rs.next()) { idVisto = rs.getLong("ultimo_mensaje_visto_id"); filaEncontrada = true; }
-        } catch (SQLException e) { System.out.println("Error al leer mensajes."); }
+        } catch (SQLException e) { System.out.println("Error al leer estado de mensajes."); }
         if (!filaEncontrada) actualizarUltimoMensajeVisto(usuario, idGrupo, 0);
         return idVisto;
     }
@@ -97,7 +95,7 @@ public class GruposBD {
             ps.setInt(1, idGrupo); ps.setLong(2, ultimoMensajeVistoId); ps.setString(3, usuario); ps.setString(4, "Invitado-" + clienteId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) mensajes.add(String.format("[%s] %s DICE: %s", rs.getTimestamp("timestamp"), rs.getString("usuario_remitente"), rs.getString("contenido")));
-        } catch (SQLException e) { System.out.println("Error al obtener mensajes."); }
+        } catch (SQLException e) { System.out.println("Error al recuperar mensajes."); }
         return mensajes;
     }
 
@@ -112,7 +110,7 @@ public class GruposBD {
         try (Connection conn = ConexionBD.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, usuario); ps.setInt(2, idGrupo); ps.setLong(3, ultimoMensajeId); ps.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Error al actualizar estado.");
+            System.out.println("Error al actualizar lectura.");
         }
     }
 
