@@ -1,8 +1,8 @@
 package servidormulti;
 
-import servidormulti.Servicios.ManejadorGrupos;
-import servidormulti.Servicios.ManejadorMensajes;
-import servidormulti.Servicios.ManejadorUsuarios;
+import servidormulti.servicios.ManejadorGrupos;
+import servidormulti.servicios.ManejadorMensajes;
+import servidormulti.servicios.ManejadorUsuarios;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -19,15 +19,14 @@ public class UnCliente implements Runnable {
     private final ManejadorMensajes manejadorMensajes;
     private final ManejadorGrupos manejadorGrupos;
     private final EstadoServidor estado;
+
     private String oponenteEnFoco = null;
     private String nombreUsuario = null;
     private boolean registrado = false;
     private int idGrupoActual = Constantes.ID_GRUPO_TODOS;
     private String nombreGrupoActual = Constantes.NOMBRE_GRUPO_TODOS;
 
-
-
-    public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes, ManejadorGrupos manejadorGrupos, EstadoServidor estado) throws IOException { // Recibe el estado
+    public UnCliente(Socket socket, String clienteId, ManejadorUsuarios manejadorUsuarios, ManejadorMensajes manejadorMensajes, ManejadorGrupos manejadorGrupos, EstadoServidor estado) throws IOException {
         this.clienteId = clienteId;
         this.salida = new DataOutputStream(socket.getOutputStream());
         this.entrada = new DataInputStream(socket.getInputStream());
@@ -37,7 +36,6 @@ public class UnCliente implements Runnable {
         this.estado = estado;
         estado.contadoresDeMensajes.put(clienteId, 0);
     }
-
 
     @Override
     public void run() {
@@ -61,7 +59,8 @@ public class UnCliente implements Runnable {
                 }
             }
         } catch (IOException ex) {
-            System.out.println("Cliente '" + (nombreUsuario != null ? nombreUsuario : clienteId) + "' desconectado.");
+            // MENSAJE SIMPLE
+            System.out.println("El cliente cerró la conexión.");
             limpiar();
         }
     }
@@ -74,7 +73,7 @@ public class UnCliente implements Runnable {
 
         if (exito) {
             this.registrado = true;
-            estado.contadoresDeMensajes.remove(this.clienteId); //
+            estado.contadoresDeMensajes.remove(this.clienteId);
             String grupoAUnirse = Constantes.NOMBRE_GRUPO_TODOS;
             if (mensaje.equalsIgnoreCase("/login")) {
                 manejadorGrupos.cambiarGrupo(grupoAUnirse, this, false);
@@ -87,7 +86,6 @@ public class UnCliente implements Runnable {
     private void gestionarMensajesDeInvitado(String mensaje) throws IOException {
         int contador = estado.contadoresDeMensajes.get(clienteId) + 1;
         estado.contadoresDeMensajes.put(clienteId, contador);
-
 
         if (contador > Constantes.LIMITE_MENSAJES_INVITADO) {
             salida.writeUTF("Has enviado " + Constantes.LIMITE_MENSAJES_INVITADO + " mensajes. Por favor, regístrate usando [/register] o [/login]");
@@ -104,10 +102,8 @@ public class UnCliente implements Runnable {
     private void limpiar() {
         String nombreUsuarioLimpio = (nombreUsuario != null) ? nombreUsuario : clienteId;
 
-
         if (nombreUsuario != null && estado.partidasActivas.containsKey(nombreUsuarioLimpio)) {
             Set<String> oponentes = new java.util.HashSet<>(estado.partidasActivas.get(nombreUsuarioLimpio));
-
 
             for (String oponente : oponentes) {
                 UnCliente clienteOponente = estado.getCliente(oponente);
@@ -119,14 +115,15 @@ public class UnCliente implements Runnable {
                             clienteOponente.setOponenteEnFoco(null);
                         }
                     } catch (IOException e) {
-
+                        // Ignorar silenciosamente
                     }
                 }
 
                 try {
                     manejadorMensajes.procesarAbandono(nombreUsuarioLimpio, oponente);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    // MENSAJE SIMPLE
+                    System.out.println("Error al registrar abandono.");
                 }
             }
         }
@@ -141,8 +138,9 @@ public class UnCliente implements Runnable {
             estado.removerCliente(clienteId);
         }
         estado.contadoresDeMensajes.remove(clienteId);
-
     }
+
+    // ... (Resto de métodos sin cambios: resetearEstadoAInvitado, getters y setters, recibirInvitacion)
 
     public void resetearEstadoAInvitado() {
         this.nombreUsuario = null;
@@ -151,8 +149,6 @@ public class UnCliente implements Runnable {
         this.nombreGrupoActual = Constantes.NOMBRE_GRUPO_TODOS;
         this.oponenteEnFoco = null;
     }
-
-
 
     public String getClienteId() { return clienteId; }
     public String getNombreUsuario() { return nombreUsuario; }
