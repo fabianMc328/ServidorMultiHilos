@@ -1,14 +1,9 @@
-package servidormulti.Servicios;
+package servidormulti.servicios;
 
-import servidormulti.BD.BloqueosBD;
-import servidormulti.BD.GruposBD;
-import servidormulti.BD.RankingBD;
-import servidormulti.BD.UsuariosBD;
-import servidormulti.EstadoServidor;
+import servidormulti.bd.*;
 import servidormulti.UnCliente;
-
+import servidormulti.EstadoServidor;
 import java.io.IOException;
-
 
 public class ManejadorMensajes {
 
@@ -28,7 +23,6 @@ public class ManejadorMensajes {
                              GruposBD gruposBD, ManejadorGrupos manejadorGrupos,
                              ManejadorUsuarios manejadorUsuarios, ManejadorInvitaciones manejadorInvitaciones,
                              EstadoServidor estado, GeneradorAyuda generadorAyuda) {
-
         this.bloqueosBD = bloqueosBD;
         this.usuariosBD = usuariosBD;
         this.rankingBD = rankingBD;
@@ -38,23 +32,15 @@ public class ManejadorMensajes {
         this.manejadorUsuarios = manejadorUsuarios;
         this.estado = estado;
         this.generadorAyuda = generadorAyuda;
+
         this.procesadorComandos = new ProcesadorComandos(
-                manejadorUsuarios,
-                manejadorGrupos,
-                rankingBD,
-                generadorAyuda,
-                manejadorInvitaciones,
-                estado,
-                bloqueosBD,
-                usuariosBD
+                manejadorUsuarios, manejadorGrupos, rankingBD, generadorAyuda,
+                manejadorInvitaciones, estado, bloqueosBD, usuariosBD
         );
-
     }
-
 
     public void procesar(String mensaje, UnCliente remitente) throws IOException {
         String nombreRemitente = remitente.getNombreUsuario() != null ? remitente.getNombreUsuario() : "Invitado-" + remitente.getClienteId();
-
         if (mensaje.startsWith("@")) {
             if (remitente.getNombreUsuario() == null) {
                 remitente.salida.writeUTF("Debes iniciar sesion para enviar mensajes privados.");
@@ -66,17 +52,30 @@ public class ManejadorMensajes {
         }
 
         if (mensaje.startsWith("/")) {
-            procesadorComandos.ejecutar(mensaje, remitente);
+            boolean comandoEjecutado = procesadorComandos.ejecutar(mensaje, remitente);
+            if (!comandoEjecutado) {
+                boolean comandoDeGrupo = manejadorGrupos.procesarComandoGrupo(mensaje, remitente);
+                if (!comandoDeGrupo) {
+                    remitente.salida.writeUTF("Comando desconocido.");
+                    generadorAyuda.enviarListaDeComandos(remitente);
+                }
+            }
             return;
         }
-        procesarMensajeGrupo(mensaje, remitente, nombreRemitente);
 
+        if (remitente.getOponenteEnFoco() != null) {
+            String mensajeAutomatico = "@" + remitente.getOponenteEnFoco() + " " + mensaje;
+            procesarMensajePrivado(mensajeAutomatico, remitente, nombreRemitente);
+            return;
+        }
+
+        procesarMensajeGrupo(mensaje, remitente, nombreRemitente);
     }
 
     private void procesarMensajePrivado(String mensaje, UnCliente remitente, String nombreRemitente) throws IOException {
         String[] partes = mensaje.split(" ", 2);
         if (partes.length < 2) {
-            remitente.salida.writeUTF("Formato incorrecto. Usa: @usuario1,usuario2 mensaje");
+            remitente.salida.writeUTF("Formato: @usuario mensaje");
             return;
         }
         String todosLosDestinos = partes[0].substring(1);
@@ -85,31 +84,31 @@ public class ManejadorMensajes {
 
         for (String destino : destinosIndividuales) {
             String nombreLimpio = destino.trim();
-            if (nombreLimpio.isEmpty()) {
-                continue;
-            }
-
+            if (nombreLimpio.isEmpty()) continue;
             if (nombreLimpio.equalsIgnoreCase(nombreRemitente)) {
-                remitente.salida.writeUTF("No puedes enviarte mensajes privados a ti mismo.");
+                remitente.salida.writeUTF("No puedes enviarte mensajes a ti mismo.");
                 continue;
             }
 
             UnCliente clienteDestino = estado.getCliente(nombreLimpio);
-
             if (clienteDestino != null) {
-                boolean tuBloqueaste = bloqueosBD.estaBloqueado(nombreRemitente, nombreLimpio);
-                boolean teBloquearon = bloqueosBD.estaBloqueado(nombreLimpio, nombreRemitente);
-
-                if (tuBloqueaste) {
-                    remitente.salida.writeUTF("No puedes enviar mensajes a " + nombreLimpio + " porque lo tienes bloqueado.");
+                boolean bloqueado = bloqueosBD.estaBloqueado(nombreRemitente, nombreLimpio) || bloqueosBD.estaBloqueado(nombreLimpio, nombreRemitente);
+                if (bloqueado) {
+                    remitente.salida.writeUTF("No puedes enviar mensaje a " + nombreLimpio + " (bloqueo activo).");
                     continue;
                 }
-                if (teBloquearon) {
-                    remitente.salida.writeUTF("No puedes enviar mensajes a " + nombreLimpio + " porque te tiene bloqueado.");
-                    continue;
-                }
+                try {
+                    String etiqueta = (remitente.getOponenteEnFoco() != null && remitente.getOponenteEnFoco().equalsIgnoreCase(nombreLimpio))
+                            ? "[JUEGO]" : "(Privado)";
 
-                clienteDestino.salida.writeUTF("(Privado) " + nombreRemitente + " DICE: " + mensajePrivado);
+                    clienteDestino.salida.writeUTF(etiqueta + " " + nombreRemitente + ": " + mensajePrivado);
+                    if (remitente.getOponenteEnFoco() != null) {
+                        remitente.salida.writeUTF("[TÚ->JUEGO]: " + mensajePrivado);
+                    }
+
+                } catch (IOException e) {
+                    System.out.println("No se pudo enviar mensaje privado a " + nombreLimpio);
+                }
             } else {
                 remitente.salida.writeUTF("El usuario '" + nombreLimpio + "' no está conectado.");
             }
@@ -118,40 +117,32 @@ public class ManejadorMensajes {
 
     private void procesarMensajeGrupo(String mensaje, UnCliente remitente, String nombreRemitente) throws IOException {
         if (remitente.getNombreUsuario() == null && remitente.getIdGrupoActual() != 1) {
-            remitente.salida.writeUTF("Como invitado, solo puedes chatear en 'todos'. Escribe /unirse-grupo todos");
+            remitente.salida.writeUTF("Solo puedes chatear en 'todos' sin registrarte.");
             return;
         }
 
-        long nuevoMensajeId = gruposBD.guardarMensaje(remitente.getIdGrupoActual(), nombreRemitente, mensaje);
-
-        String mensajeCompleto = String.format("[%s] %s DICE: %s",
-                remitente.getNombreGrupoActual(),
-                nombreRemitente,
-                mensaje);
+        gruposBD.guardarMensaje(remitente.getIdGrupoActual(), nombreRemitente, mensaje);
+        String mensajeCompleto = String.format("[%s] %s DICE: %s", remitente.getNombreGrupoActual(), nombreRemitente, mensaje);
 
         for (UnCliente clienteDestino : estado.clientes.values()) {
-
-            if (clienteDestino == remitente) {
-                continue;
-            }
-
+            if (clienteDestino == remitente) continue;
             if (clienteDestino.getIdGrupoActual() == remitente.getIdGrupoActual()) {
-
-                boolean puedeEnviar = true;
+                boolean bloqueado = false;
                 String nombreDestino = clienteDestino.getNombreUsuario();
-                String nombreRemitenteLogueado = remitente.getNombreUsuario();
+                String nombreOrigen = remitente.getNombreUsuario();
 
-                if (nombreRemitenteLogueado != null && nombreDestino != null) {
-                    if (bloqueosBD.estaBloqueado(nombreDestino, nombreRemitenteLogueado)) {
-                        puedeEnviar = false;
-                    }
-                    if (bloqueosBD.estaBloqueado(nombreRemitenteLogueado, nombreDestino)) {
-                        puedeEnviar = false;
+                if (nombreOrigen != null && nombreDestino != null) {
+                    if (bloqueosBD.estaBloqueado(nombreDestino, nombreOrigen) || bloqueosBD.estaBloqueado(nombreOrigen, nombreDestino)) {
+                        bloqueado = true;
                     }
                 }
 
-                if (puedeEnviar) {
-                    clienteDestino.salida.writeUTF(mensajeCompleto);
+                if (!bloqueado) {
+                    try {
+                        clienteDestino.salida.writeUTF(mensajeCompleto);
+                    } catch (IOException e) {
+                        System.out.println("Aviso: No se pudo entregar mensaje a un cliente (posible desconexión).");
+                    }
                 }
             }
         }
